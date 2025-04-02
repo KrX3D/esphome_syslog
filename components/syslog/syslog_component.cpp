@@ -105,14 +105,6 @@ void SyslogComponent::setup() {
 void SyslogComponent::loop() {
 }
 
-bool SyslogComponent::recreate_udp() {
-    if (this->udp_ != nullptr) {
-        delete this->udp_;
-    }
-    this->udp_ = new WiFiUDP();
-    return this->udp_ != nullptr;
-}
-
 void SyslogComponent::set_server_ip(const std::string &address) {
     if (this->settings_.address != address) {
         this->settings_.address = address;
