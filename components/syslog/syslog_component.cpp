@@ -119,8 +119,8 @@ void SyslogComponent::loop() {
 
 void SyslogComponent::set_server_ip(const std::string &address) {
     if (this->settings_.address != address) {
-        ESP_LOGI(TAG, "Syslog server IP updated: %s -> %s", 
-                 this->settings_.address.c_str(), address.c_str());
+        //ESP_LOGI(TAG, "Syslog server IP updated: %s -> %s", 
+                 //this->settings_.address.c_str(), address.c_str());
         this->settings_.address = address;
         
         // Recreate the socket with the new address
@@ -132,8 +132,8 @@ void SyslogComponent::set_server_ip(const std::string &address) {
 
 void SyslogComponent::set_server_port(uint16_t port) {
     if (this->settings_.port != port) {
-        ESP_LOGI(TAG, "Syslog server port updated: %d -> %d", 
-                 this->settings_.port, port);
+        //ESP_LOGI(TAG, "Syslog server port updated: %d -> %d", 
+                 //this->settings_.port, port);
         this->settings_.port = port;
         
         // Recreate the socket with the new port
