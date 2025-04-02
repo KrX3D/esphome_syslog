@@ -18,12 +18,21 @@ SyslogComponent::SyslogComponent() {
     this->filter_include_mode = false; // Default to exclude mode
     this->strip_colors = true;
     this->enable_logger = true;
-    // Get the WifiUDP client here instead of getting it in setup() to make sure we always have a client when calling log()
-    // Calling log() without the device connected should not be an issue since there is a wifi connected check and WifiUDP fails "silently" and doesn't generate an exception anyways
-    this->udp_ = new WiFiUDP(); 
 }
 
 void SyslogComponent::setup() {
+     this->server_socklen = socket::set_sockaddr((struct sockaddr *)&this->server, sizeof(this->server),
+                                                 this->settings_.address, this->settings_.port);
+     if (!this->server_socklen) {
+         ESP_LOGW(TAG, "Failed to parse server IP address '%s'", this->settings_.address.c_str());
+         return;
+     }
+     this->socket_ = socket::socket(this->server.ss_family, SOCK_DGRAM, IPPROTO_UDP);
+     if (!this->socket_) {
+         ESP_LOGW(TAG, "Failed to create UDP socket");
+         return;
+     }
+ 
     this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "Syslog started");
     ESP_LOGI(TAG, "Started");
     #ifdef USE_LOGGER
@@ -138,22 +147,16 @@ bool SyslogComponent::should_send_log(const std::string &tag) {
 
 void SyslogComponent::log(uint8_t level, const std::string &tag, const std::string &payload) {
     level = level > 7 ? 7 : level;
-    // Simple check to make sure that there is connectivity, if not, log the issue and return
-    if(WiFi.status() != WL_CONNECTED) {
-        ESP_LOGW(TAG, "Tried to send \"%s\"@\"%s\" with level %d but Wifi isn't connected yet", tag.c_str(), payload.c_str(), level);
+     if (!this->socket_) {
+         ESP_LOGW(TAG, "Tried to send \"%s\"@\"%s\" with level %d but socket isn't connected", tag.c_str(), payload.c_str(), level);
         return;
     }
     
-    Syslog syslog(
-        *this->udp_,
-        this->settings_.address.c_str(),
-        this->settings_.port,
-        this->settings_.client_id.c_str(),
-        tag.c_str(),
-        LOG_KERN
-    );
-    
-    if(!syslog.log(esphome_to_syslog_log_levels[level], payload.c_str())) {
+     int pri = esphome_to_syslog_log_levels[level];
+     std::string buf = str_sprintf("<%d>1 - %s %s - - - \xEF\xBB\xBF%s",
+                                   pri, this->settings_.client_id.c_str(),
+                                   tag.c_str(), payload.c_str());
+     if (this->socket_->sendto(buf.c_str(), buf.length(), 0, (struct sockaddr *)&this->server, this->server_socklen) < 0) {
         ESP_LOGW(TAG, "Tried to send \"%s\"@\"%s\" with level %d but failed for an unknown reason", tag.c_str(), payload.c_str(), level);
     }
 }
