@@ -164,9 +164,12 @@ void SyslogComponent::set_enable_direct_logs(bool en) {
 
 void SyslogComponent::set_globally_enabled(bool en) {
     if (this->globally_enabled != en) {
-        this->log(ESPHOME_LOG_LEVEL_INFO, "Syslog component: %s -> %s", 
-          this->globally_enabled ? "enabled" : "disabled", 
-          en ? "enabled" : "disabled");
+
+        char buffer[100];
+        snprintf(buffer, sizeof(buffer), "Syslog component: %s -> %s",
+                 this->globally_enabled ? "enabled" : "disabled",
+                 en ? "enabled" : "disabled");
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
         
         this->globally_enabled = en;
         
