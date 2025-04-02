@@ -96,7 +96,7 @@ void SyslogComponent::setup() {
     #ifdef USE_LOGGER
     if (logger::global_logger != nullptr) {
         logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
-            if(!this->globally_enabled || !this->enable_logger || (level > this->settings_.min_log_level)) return;
+            if(!this->enable_logger || (level > this->settings_.min_log_level)) return;
             
             std::string tag_str(tag);
             if (!this->should_send_log(tag_str)) {
@@ -123,10 +123,6 @@ void SyslogComponent::set_server_ip(const std::string &address) {
                  //this->settings_.address.c_str(), address.c_str());
         this->settings_.address = address;
         
-        // Recreate the socket with the new address
-        if (this->globally_enabled) {
-            this->setup();
-        }
     }
 }
 
@@ -136,10 +132,6 @@ void SyslogComponent::set_server_port(uint16_t port) {
                  //this->settings_.port, port);
         this->settings_.port = port;
         
-        // Recreate the socket with the new port
-        if (this->globally_enabled) {
-            this->setup();
-        }
     }
 }
 
