@@ -13,6 +13,7 @@ from esphome.const import (
     CONF_MODE,
     CONF_INVERTED
 )
+from esphome.components import logger
 
 CONF_STRIP_COLORS = "strip_colors"
 CONF_ENABLE_LOGGER_MESSAGES = "enable_logger"
@@ -51,7 +52,7 @@ CONFIG_SCHEMA = cv.All(
         cv.Optional(CONF_PORT, default=514): cv.port,
         cv.Optional(CONF_ENABLE_LOGGER_MESSAGES, default=True): cv.boolean,
         cv.Optional(CONF_STRIP_COLORS, default=True): cv.boolean,
-        cv.Optional(CONF_MIN_LEVEL, default="DEBUG"): cv.one_of(*esphome.log.LOG_LEVELS, lower=True),
+        cv.Optional(CONF_MIN_LEVEL, default="DEBUG"): cv.one_of(*logger.LOG_LEVELS, lower=True),
         cv.Optional(CONF_FILTER_MODE, default="exclude"): validate_filter_mode,
         cv.Optional(CONF_FILTERS, default=[]): cv.ensure_list(cv.string),
     }),
@@ -79,16 +80,16 @@ SYSLOG_CLEAR_FILTERS_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.use_id(SyslogComponent),
 })
 
-async def to_code(config):
+def to_code(config):
     cg.add_library('Syslog', '2.0.0')
     var = cg.new_Pvariable(config[CONF_ID])
-    await cg.register_component(var, config)
+    yield cg.register_component(var, config)
     
     cg.add(var.set_enable_logger_messages(config[CONF_ENABLE_LOGGER_MESSAGES]))
     cg.add(var.set_strip_colors(config[CONF_STRIP_COLORS]))
     cg.add(var.set_server_ip(config[CONF_IP_ADDRESS]))
     cg.add(var.set_server_port(config[CONF_PORT]))
-    cg.add(var.set_min_log_level(esphome.log.LOG_LEVELS[config[CONF_MIN_LEVEL].upper()]))
+    cg.add(var.set_min_log_level(logger.LOG_LEVELS[config[CONF_MIN_LEVEL].upper()]))
     cg.add(var.set_filter_mode(config[CONF_FILTER_MODE]))
     
     # Add initial filters
@@ -96,35 +97,35 @@ async def to_code(config):
         cg.add(var.add_filter(filter_tag))
 
 @automation.register_action('syslog.log', SyslogLogAction, SYSLOG_LOG_ACTION_SCHEMA)
-async def syslog_log_action_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
+def syslog_log_action_to_code(config, action_id, template_arg, args):
+    paren = yield cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
-    template_ = await cg.templatable(config[CONF_LEVEL], args, cg.uint8)
+    template_ = yield cg.templatable(config[CONF_LEVEL], args, cg.uint8)
     cg.add(var.set_level(template_))
-    template_ = await cg.templatable(config[CONF_TAG], args, cg.std_string)
+    template_ = yield cg.templatable(config[CONF_TAG], args, cg.std_string)
     cg.add(var.set_tag(template_))
-    template_ = await cg.templatable(config[CONF_PAYLOAD], args, cg.std_string)
+    template_ = yield cg.templatable(config[CONF_PAYLOAD], args, cg.std_string)
     cg.add(var.set_payload(template_))
-    return var
+    yield var
 
 @automation.register_action('syslog.add_filter', SyslogAddFilterAction, SYSLOG_ADD_FILTER_SCHEMA)
-async def syslog_add_filter_action_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
+def syslog_add_filter_action_to_code(config, action_id, template_arg, args):
+    paren = yield cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
-    template_ = await cg.templatable(config[CONF_TAG], args, cg.std_string)
+    template_ = yield cg.templatable(config[CONF_TAG], args, cg.std_string)
     cg.add(var.set_tag(template_))
-    return var
+    yield var
 
 @automation.register_action('syslog.remove_filter', SyslogRemoveFilterAction, SYSLOG_REMOVE_FILTER_SCHEMA)
-async def syslog_remove_filter_action_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
+def syslog_remove_filter_action_to_code(config, action_id, template_arg, args):
+    paren = yield cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
-    template_ = await cg.templatable(config[CONF_TAG], args, cg.std_string)
+    template_ = yield cg.templatable(config[CONF_TAG], args, cg.std_string)
     cg.add(var.set_tag(template_))
-    return var
+    yield var
 
 @automation.register_action('syslog.clear_filters', SyslogClearFiltersAction, SYSLOG_CLEAR_FILTERS_SCHEMA)
-async def syslog_clear_filters_action_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
+def syslog_clear_filters_action_to_code(config, action_id, template_arg, args):
+    paren = yield cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
-    return var
+    yield var
