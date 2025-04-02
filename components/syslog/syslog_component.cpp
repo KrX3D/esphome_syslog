@@ -38,7 +38,7 @@ SyslogComponent::SyslogComponent() {
 void SyslogComponent::setup() {
     // If component is globally disabled, don't set up the socket
     if (!this->globally_enabled) {
-        //ESP_LOGI(TAG, "Syslog component is disabled, skipping setup");
+        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", "Syslog component is disabled, skipping setup");
         return;
     }
 
@@ -79,19 +79,24 @@ void SyslogComponent::setup() {
         this->server_socklen = sizeof(*server4);
     }
     if (!this->server_socklen) {
-        ESP_LOGE(TAG, "Failed to parse server IP address '%s'", this->settings_.address.c_str());
+        char buffer[150];
+        snprintf(buffer, sizeof(buffer), "Failed to parse server IP address '%s'", this->settings_.address.c_str());
+        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer));
         this->mark_failed();
         return;
     }
     this->socket_ = socket::socket(this->server.ss_family, SOCK_DGRAM, IPPROTO_UDP);
     if (!this->socket_) {
-        ESP_LOGE(TAG, "Failed to create UDP socket");
+        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", "Failed to create UDP socket");
         this->mark_failed();
         return;
     }
  
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "Syslog started");
-    //ESP_LOGI(TAG, "Started with server %s:%d", this->settings_.address.c_str(), this->settings_.port);
+    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "-------- Syslog started --------");
+    char buffer[100];
+    snprintf(buffer, sizeof(buffer), "Started with server: %s -> %d",
+             this->settings_.address.c_str(), this->settings_.port);
+    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
     
     #ifdef USE_LOGGER
     if (logger::global_logger != nullptr) {
@@ -119,8 +124,10 @@ void SyslogComponent::loop() {
 
 void SyslogComponent::set_server_ip(const std::string &address) {
     if (this->settings_.address != address) {
-        //ESP_LOGI(TAG, "Syslog server IP updated: %s -> %s", 
-                 //this->settings_.address.c_str(), address.c_str());
+        char buffer[150];
+        snprintf(buffer, sizeof(buffer), "Syslog server IP updated: %s -> %s",
+                 this->settings_.address.c_str(), address.c_str());
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
         this->settings_.address = address;
         
     }
@@ -128,7 +135,7 @@ void SyslogComponent::set_server_ip(const std::string &address) {
 
 void SyslogComponent::set_server_port(uint16_t port) {
     if (this->settings_.port != port) {
-        char buffer[100];
+        char buffer[150];
         snprintf(buffer, sizeof(buffer), "Syslog server port updated: %d -> %d",
                  this->settings_.port, port);
         this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
@@ -139,7 +146,7 @@ void SyslogComponent::set_server_port(uint16_t port) {
 
 void SyslogComponent::set_enable_logger_messages(bool en) {
     if (this->enable_logger != en) { 
-        char buffer[100];
+        char buffer[150];
         snprintf(buffer, sizeof(buffer), "Logger messages: %s -> %s",
                  this->enable_logger ? "enabled" : "disabled",
                  en ? "enabled" : "disabled");
@@ -150,7 +157,7 @@ void SyslogComponent::set_enable_logger_messages(bool en) {
 
 void SyslogComponent::set_strip_colors(bool strip_colors) {
     if (this->strip_colors != strip_colors) {    
-        char buffer[100];
+        char buffer[150];
         snprintf(buffer, sizeof(buffer), "Strip colors: %s -> %s",
                  this->strip_colors ? "enabled" : "disabled",
                  strip_colors ? "enabled" : "disabled");
@@ -161,7 +168,7 @@ void SyslogComponent::set_strip_colors(bool strip_colors) {
 
 void SyslogComponent::set_enable_direct_logs(bool en) {
     if (this->enable_direct_logs != en) {        
-        char buffer[100];
+        char buffer[150];
         snprintf(buffer, sizeof(buffer), "Direct logging: %s -> %s",
                  this->enable_direct_logs ? "enabled" : "disabled",
                  en ? "enabled" : "disabled");
@@ -173,7 +180,7 @@ void SyslogComponent::set_enable_direct_logs(bool en) {
 void SyslogComponent::set_globally_enabled(bool en) {
     if (this->globally_enabled != en) {
 
-        char buffer[100];
+        char buffer[150];
         snprintf(buffer, sizeof(buffer), "Syslog component: %s -> %s",
                  this->globally_enabled ? "enabled" : "disabled",
                  en ? "enabled" : "disabled");
@@ -195,12 +202,17 @@ void SyslogComponent::set_globally_enabled(bool en) {
 
 void SyslogComponent::add_filter(const std::string &tag) {
     this->tag_filters.insert(tag);
-    ESP_LOGI(TAG, "Added filter for tag: %s", tag.c_str());
+    char buffer[150];
+    snprintf(buffer, sizeof(buffer), "Added filter for tag: '%s'", tag.c_str());
+    this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer));
 }
 
 void SyslogComponent::remove_filter(const std::string &tag) {
     this->tag_filters.erase(tag);
-    ESP_LOGI(TAG, "Removed filter for tag: %s", tag.c_str());
+    char buffer[150];
+    snprintf(buffer, sizeof(buffer), "Removed filter for tag: '%s'", tag.c_str());
+    this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer));
+
 }
 
 bool SyslogComponent::has_filter(const std::string &tag) const {
