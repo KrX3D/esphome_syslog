@@ -167,6 +167,10 @@ void SyslogComponent::set_globally_enabled(bool en) {
         ESP_LOGI(TAG, "Syslog component: %s -> %s", 
                  this->globally_enabled ? "enabled" : "disabled", 
                  en ? "enabled" : "disabled");
+        
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "Syslog component: %s -> %s", 
+                 this->globally_enabled ? "enabled" : "disabled", 
+                 en ? "enabled" : "disabled");
         this->globally_enabled = en;
         
         // If enabling, make sure to set up the socket
@@ -183,12 +187,12 @@ void SyslogComponent::set_globally_enabled(bool en) {
 
 void SyslogComponent::add_filter(const std::string &tag) {
     this->tag_filters.insert(tag);
-    //ESP_LOGI(TAG, "Added filter for tag: %s", tag.c_str());
+    ESP_LOGI(TAG, "Added filter for tag: %s", tag.c_str());
 }
 
 void SyslogComponent::remove_filter(const std::string &tag) {
     this->tag_filters.erase(tag);
-    //ESP_LOGI(TAG, "Removed filter for tag: %s", tag.c_str());
+    ESP_LOGI(TAG, "Removed filter for tag: %s", tag.c_str());
 }
 
 bool SyslogComponent::has_filter(const std::string &tag) const {
