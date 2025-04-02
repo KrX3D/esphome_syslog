@@ -241,14 +241,10 @@ bool SyslogComponent::should_send_log(const std::string &tag) {
 
 void SyslogComponent::log(uint8_t level, const std::string &tag, const std::string &payload) {
     // Check if component is enabled and if direct logs are allowed
-    if (!this->globally_enabled || this->is_failed()) {
+    if (this->is_failed()) {
         return;
     }
     
-    // For direct log calls, check the enable_direct_logs flag
-    if (!this->enable_direct_logs && tag != "syslog") {
-        return;
-    }
 
     level = level > 7 ? 7 : level;
     
