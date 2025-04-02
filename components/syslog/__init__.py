@@ -34,6 +34,9 @@ SyslogAddFilterAction = syslog_ns.class_('SyslogAddFilterAction', automation.Act
 SyslogRemoveFilterAction = syslog_ns.class_('SyslogRemoveFilterAction', automation.Action)
 SyslogClearFiltersAction = syslog_ns.class_('SyslogClearFiltersAction', automation.Action)
 
+# Define all log levels in uppercase for validation
+LOG_LEVEL_OPTIONS = [level.upper() for level in logger.LOG_LEVELS]
+
 # Validate filter mode
 def validate_filter_mode(value):
     if isinstance(value, str):
@@ -45,6 +48,14 @@ def validate_filter_mode(value):
         return value
     raise cv.Invalid(f"Filter mode must be either 'include', 'exclude', True (include), or False (exclude)")
 
+# Custom validator for log levels that handles case insensitivity
+def validate_log_level(value):
+    if isinstance(value, str):
+        upper_value = value.upper()
+        if upper_value in LOG_LEVEL_OPTIONS:
+            return upper_value
+    raise cv.Invalid(f"Unknown value '{value}', valid options are {', '.join(LOG_LEVEL_OPTIONS)}.")
+
 CONFIG_SCHEMA = cv.All(
     cv.Schema({
         cv.GenerateID(): cv.declare_id(SyslogComponent),
@@ -52,7 +63,7 @@ CONFIG_SCHEMA = cv.All(
         cv.Optional(CONF_PORT, default=514): cv.port,
         cv.Optional(CONF_ENABLE_LOGGER_MESSAGES, default=True): cv.boolean,
         cv.Optional(CONF_STRIP_COLORS, default=True): cv.boolean,
-        cv.Optional(CONF_MIN_LEVEL, default="DEBUG"): cv.one_of(*logger.LOG_LEVELS, lower=True),
+        cv.Optional(CONF_MIN_LEVEL, default="DEBUG"): validate_log_level,
         cv.Optional(CONF_FILTER_MODE, default="exclude"): validate_filter_mode,
         cv.Optional(CONF_FILTERS, default=[]): cv.ensure_list(cv.string),
     }),
@@ -89,7 +100,9 @@ def to_code(config):
     cg.add(var.set_strip_colors(config[CONF_STRIP_COLORS]))
     cg.add(var.set_server_ip(config[CONF_IP_ADDRESS]))
     cg.add(var.set_server_port(config[CONF_PORT]))
-    cg.add(var.set_min_log_level(logger.LOG_LEVELS[config[CONF_MIN_LEVEL].upper()]))
+    
+    # The log level is already uppercase from our validator
+    cg.add(var.set_min_log_level(logger.LOG_LEVELS[config[CONF_MIN_LEVEL]]))
     cg.add(var.set_filter_mode(config[CONF_FILTER_MODE]))
     
     # Add initial filters
