@@ -5,14 +5,7 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/log.h"
-#include <Syslog.h>
-#include <Udp.h>
-#if defined ESP8266 || defined ARDUINO_ESP8266_ESP01
-    #include <ESP8266WiFi.h>
-#else
-    #include <WiFi.h>
-#endif
-#include <WiFiUdp.h>
+#include "esphome/components/socket/socket.h"
 #include <unordered_map>
 #include <set>
 
@@ -75,7 +68,9 @@ class SyslogComponent : public Component {
         bool filter_include_mode; // true = include only these tags, false = exclude these tags
         std::set<std::string> tag_filters;
         SYSLOGSettings settings_;
-        WiFiUDP *udp_ = NULL;
+        std::unique_ptr<socket::Socket> socket_ = nullptr;
+        struct sockaddr_storage server;
+        socklen_t server_socklen;
         bool recreate_udp();
 };
 
