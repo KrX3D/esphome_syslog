@@ -1,6 +1,7 @@
 #pragma once
 #ifndef SYSLOG_COMPONENT_H_0504CB6C_15D8_4AB4_A04C_8AF9063B737F
 #define SYSLOG_COMPONENT_H_0504CB6C_15D8_4AB4_A04C_8AF9063B737F
+
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/automation.h"
@@ -19,10 +20,14 @@ struct SYSLOGSettings {
     int min_log_level;
 };
 
+//class UDP;
+
 class SyslogComponent : public Component {
     public:
         SyslogComponent();
+
         float get_setup_priority() const override;
+
         void setup() override;
         void loop() override;
         
@@ -71,7 +76,6 @@ class SyslogComponent : public Component {
         std::unique_ptr<socket::Socket> socket_ = nullptr;
         struct sockaddr_storage server;
         socklen_t server_socklen;
-        bool recreate_udp();
 };
 
 // Custom action to log a message
@@ -81,9 +85,11 @@ template<typename... Ts> class SyslogLogAction : public Action<Ts...> {
         TEMPLATABLE_VALUE(uint8_t, level)
         TEMPLATABLE_VALUE(std::string, tag)
         TEMPLATABLE_VALUE(std::string, payload)
+
         void play(Ts... x) override {
             this->parent_->log(this->level_.value(x...), this->tag_.value(x...), this->payload_.value(x...));
         }
+
     protected:
         SyslogComponent *parent_;
 };
