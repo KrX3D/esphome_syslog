@@ -155,18 +155,18 @@ void SyslogComponent::set_strip_colors(bool strip_colors) {
 
 void SyslogComponent::set_enable_direct_logs(bool en) {
     if (this->enable_direct_logs != en) {
-        //ESP_LOGI(TAG, "Direct logging: %s -> %s", 
-                 //this->enable_direct_logs ? "enabled" : "disabled", 
-                 //en ? "enabled" : "disabled");
+        ESP_LOGI(TAG, "Direct logging: %s -> %s", 
+                 this->enable_direct_logs ? "enabled" : "disabled", 
+                 en ? "enabled" : "disabled");
         this->enable_direct_logs = en;
     }
 }
 
 void SyslogComponent::set_globally_enabled(bool en) {
     if (this->globally_enabled != en) {
-        //ESP_LOGI(TAG, "Syslog component: %s -> %s", 
-                 //this->globally_enabled ? "enabled" : "disabled", 
-                 //en ? "enabled" : "disabled");
+        ESP_LOGI(TAG, "Syslog component: %s -> %s", 
+                 this->globally_enabled ? "enabled" : "disabled", 
+                 en ? "enabled" : "disabled");
         this->globally_enabled = en;
         
         // If enabling, make sure to set up the socket
