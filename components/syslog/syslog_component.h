@@ -49,6 +49,13 @@ class SyslogComponent : public Component {
         void set_strip_colors(bool strip_colors);
         bool get_strip_colors() const { return this->strip_colors; }
 
+        // New controls
+        void set_enable_direct_logs(bool en);
+        bool get_enable_direct_logs() const { return this->enable_direct_logs; }
+        
+        void set_globally_enabled(bool en);
+        bool get_globally_enabled() const { return this->globally_enabled; }
+
         // Filter management
         void set_filter_mode(bool include_mode) { this->filter_include_mode = include_mode; }
         bool get_filter_mode() const { return this->filter_include_mode; }
@@ -70,6 +77,8 @@ class SyslogComponent : public Component {
     protected:
         bool strip_colors;
         bool enable_logger;
+        bool enable_direct_logs;  // New: Controls whether direct log() calls work
+        bool globally_enabled;    // New: Global on/off switch for the component
         bool filter_include_mode; // true = include only these tags, false = exclude these tags
         std::set<std::string> tag_filters;
         SYSLOGSettings settings_;
