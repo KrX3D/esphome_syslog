@@ -17,6 +17,8 @@ from esphome.components import logger
 
 CONF_STRIP_COLORS = "strip_colors"
 CONF_ENABLE_LOGGER_MESSAGES = "enable_logger"
+CONF_ENABLE_DIRECT_LOGS = "enable_direct_logs"  # New option
+CONF_GLOBALLY_ENABLED = "globally_enabled"      # New option
 CONF_MIN_LEVEL = "min_level"
 CONF_SYSLOG_ID = "syslog_id"
 CONF_FILTER_MODE = "filter_mode"
@@ -64,6 +66,8 @@ CONFIG_SCHEMA = cv.All(
         cv.Optional(CONF_IP_ADDRESS, default="255.255.255.255"): cv.string_strict,
         cv.Optional(CONF_PORT, default=514): cv.port,
         cv.Optional(CONF_ENABLE_LOGGER_MESSAGES, default=True): cv.boolean,
+        cv.Optional(CONF_ENABLE_DIRECT_LOGS, default=True): cv.boolean,
+        cv.Optional(CONF_GLOBALLY_ENABLED, default=True): cv.boolean,
         cv.Optional(CONF_STRIP_COLORS, default=True): cv.boolean,
         cv.Optional(CONF_MIN_LEVEL, default="DEBUG"): validate_log_level,
         cv.Optional(CONF_FILTER_MODE, default="exclude"): validate_filter_mode,
@@ -97,6 +101,8 @@ def to_code(config):
     yield cg.register_component(var, config)
     
     cg.add(var.set_enable_logger_messages(config[CONF_ENABLE_LOGGER_MESSAGES]))
+    cg.add(var.set_enable_direct_logs(config[CONF_ENABLE_DIRECT_LOGS]))
+    cg.add(var.set_globally_enabled(config[CONF_GLOBALLY_ENABLED]))
     cg.add(var.set_strip_colors(config[CONF_STRIP_COLORS]))
     cg.add(var.set_server_ip(config[CONF_IP_ADDRESS]))
     cg.add(var.set_server_port(config[CONF_PORT]))
