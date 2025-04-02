@@ -55,6 +55,7 @@ class SyslogComponent : public Component {
         
         void set_globally_enabled(bool en);
         bool get_globally_enabled() const { return this->globally_enabled; }
+        bool is_setup() const { return this->socket_ != nullptr; }
 
         // Filter management
         void set_filter_mode(bool include_mode) { this->filter_include_mode = include_mode; }
