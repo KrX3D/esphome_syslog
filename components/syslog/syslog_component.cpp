@@ -31,9 +31,21 @@ SyslogComponent::SyslogComponent() {
     this->filter_include_mode = false; // Default to exclude mode
     this->strip_colors = true;
     this->enable_logger = true;
+    this->enable_direct_logs = true;    // New: Enable direct logging by default
+    this->globally_enabled = true;      // New: Enable component by default
 }
 
 void SyslogComponent::setup() {
+    // If component is globally disabled, don't set up the socket
+    if (!this->globally_enabled) {
+        ESP_LOGI(TAG, "Syslog component is disabled, skipping setup");
+        return;
+    }
+
+    // Close existing socket if it exists
+    if (this->socket_) {
+        this->socket_.reset();
+    }
 
     /*
      * Older versions of socket::set_sockaddr() return bogus results
@@ -79,12 +91,12 @@ void SyslogComponent::setup() {
     }
  
     this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "Syslog started");
-    ESP_LOGI(TAG, "Started");
+    ESP_LOGI(TAG, "Started with server %s:%d", this->settings_.address.c_str(), this->settings_.port);
     
     #ifdef USE_LOGGER
     if (logger::global_logger != nullptr) {
         logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
-            if(!this->enable_logger || (level > this->settings_.min_log_level)) return;
+            if(!this->globally_enabled || !this->enable_logger || (level > this->settings_.min_log_level)) return;
             
             std::string tag_str(tag);
             if (!this->should_send_log(tag_str)) {
@@ -107,29 +119,73 @@ void SyslogComponent::loop() {
 
 void SyslogComponent::set_server_ip(const std::string &address) {
     if (this->settings_.address != address) {
+        ESP_LOGI(TAG, "Syslog server IP updated: %s -> %s", 
+                 this->settings_.address.c_str(), address.c_str());
         this->settings_.address = address;
-        ESP_LOGI(TAG, "Syslog server IP updated to %s", address.c_str());
+        
+        // Recreate the socket with the new address
+        if (this->globally_enabled) {
+            this->setup();
+        }
     }
 }
 
 void SyslogComponent::set_server_port(uint16_t port) {
     if (this->settings_.port != port) {
+        ESP_LOGI(TAG, "Syslog server port updated: %d -> %d", 
+                 this->settings_.port, port);
         this->settings_.port = port;
-        ESP_LOGI(TAG, "Syslog server port updated to %d", port);
+        
+        // Recreate the socket with the new port
+        if (this->globally_enabled) {
+            this->setup();
+        }
     }
 }
 
 void SyslogComponent::set_enable_logger_messages(bool en) {
     if (this->enable_logger != en) {
+        ESP_LOGI(TAG, "Logger messages: %s -> %s", 
+                 this->enable_logger ? "enabled" : "disabled", 
+                 en ? "enabled" : "disabled");
         this->enable_logger = en;
-        ESP_LOGI(TAG, "Logger messages %s", en ? "enabled" : "disabled");
     }
 }
 
 void SyslogComponent::set_strip_colors(bool strip_colors) {
     if (this->strip_colors != strip_colors) {
+        ESP_LOGI(TAG, "Strip colors: %s -> %s", 
+                 this->strip_colors ? "enabled" : "disabled", 
+                 strip_colors ? "enabled" : "disabled");
         this->strip_colors = strip_colors;
-        ESP_LOGI(TAG, "Strip colors %s", strip_colors ? "enabled" : "disabled");
+    }
+}
+
+void SyslogComponent::set_enable_direct_logs(bool en) {
+    if (this->enable_direct_logs != en) {
+        ESP_LOGI(TAG, "Direct logging: %s -> %s", 
+                 this->enable_direct_logs ? "enabled" : "disabled", 
+                 en ? "enabled" : "disabled");
+        this->enable_direct_logs = en;
+    }
+}
+
+void SyslogComponent::set_globally_enabled(bool en) {
+    if (this->globally_enabled != en) {
+        ESP_LOGI(TAG, "Syslog component: %s -> %s", 
+                 this->globally_enabled ? "enabled" : "disabled", 
+                 en ? "enabled" : "disabled");
+        this->globally_enabled = en;
+        
+        // If enabling, make sure to set up the socket
+        if (en) {
+            this->setup();
+        } else {
+            // If disabling, close any open socket
+            if (this->socket_) {
+                this->socket_.reset();
+            }
+        }
     }
 }
 
@@ -184,22 +240,28 @@ bool SyslogComponent::should_send_log(const std::string &tag) {
 }
 
 void SyslogComponent::log(uint8_t level, const std::string &tag, const std::string &payload) {
-
-    if (this->is_failed())
-        return;
-
-    level = level > 7 ? 7 : level;
-    
-     if (!this->socket_) {
-         ESP_LOGW(TAG, "Tried to send \"%s\"@\"%s\" with level %d but socket isn't connected", tag.c_str(), payload.c_str(), level);
+    // Check if component is enabled and if direct logs are allowed
+    if (!this->globally_enabled || this->is_failed()) {
         return;
     }
     
-     int pri = esphome_to_syslog_log_levels[level];
-     std::string buf = str_sprintf("<%d>1 - %s %s - - - \xEF\xBB\xBF%s",
-                                   pri, this->settings_.client_id.c_str(),
-                                   tag.c_str(), payload.c_str());
-     if (this->socket_->sendto(buf.c_str(), buf.length(), 0, (struct sockaddr *)&this->server, this->server_socklen) < 0) {
+    // For direct log calls, check the enable_direct_logs flag
+    if (!this->enable_direct_logs && tag != "syslog") {
+        return;
+    }
+
+    level = level > 7 ? 7 : level;
+    
+    if (!this->socket_) {
+        ESP_LOGW(TAG, "Tried to send \"%s\"@\"%s\" with level %d but socket isn't connected", tag.c_str(), payload.c_str(), level);
+        return;
+    }
+    
+    int pri = esphome_to_syslog_log_levels[level];
+    std::string buf = str_sprintf("<%d>1 - %s %s - - - \xEF\xBB\xBF%s",
+                                  pri, this->settings_.client_id.c_str(),
+                                  tag.c_str(), payload.c_str());
+    if (this->socket_->sendto(buf.c_str(), buf.length(), 0, (struct sockaddr *)&this->server, this->server_socklen) < 0) {
         ESP_LOGW(TAG, "Tried to send \"%s\"@\"%s\" with level %d but failed for an unknown reason", tag.c_str(), payload.c_str(), level);
     }
 }
