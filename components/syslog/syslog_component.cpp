@@ -128,36 +128,44 @@ void SyslogComponent::set_server_ip(const std::string &address) {
 
 void SyslogComponent::set_server_port(uint16_t port) {
     if (this->settings_.port != port) {
-        //ESP_LOGI(TAG, "Syslog server port updated: %d -> %d", 
-                 //this->settings_.port, port);
+        char buffer[100];
+        snprintf(buffer, sizeof(buffer), "Syslog server port updated: %d -> %d",
+                 this->settings_.port, port);
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
         this->settings_.port = port;
         
     }
 }
 
 void SyslogComponent::set_enable_logger_messages(bool en) {
-    if (this->enable_logger != en) {
-        //ESP_LOGI(TAG, "Logger messages: %s -> %s", 
-                 //this->enable_logger ? "enabled" : "disabled", 
-                 //en ? "enabled" : "disabled");
+    if (this->enable_logger != en) { 
+        char buffer[100];
+        snprintf(buffer, sizeof(buffer), "Logger messages: %s -> %s",
+                 this->enable_logger ? "enabled" : "disabled",
+                 en ? "enabled" : "disabled");
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
         this->enable_logger = en;
     }
 }
 
 void SyslogComponent::set_strip_colors(bool strip_colors) {
-    if (this->strip_colors != strip_colors) {
-        //ESP_LOGI(TAG, "Strip colors: %s -> %s", 
-                 //this->strip_colors ? "enabled" : "disabled", 
-                 //strip_colors ? "enabled" : "disabled");
+    if (this->strip_colors != strip_colors) {    
+        char buffer[100];
+        snprintf(buffer, sizeof(buffer), "Strip colors: %s -> %s",
+                 this->strip_colors ? "enabled" : "disabled",
+                 strip_colors ? "enabled" : "disabled");
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
         this->strip_colors = strip_colors;
     }
 }
 
 void SyslogComponent::set_enable_direct_logs(bool en) {
-    if (this->enable_direct_logs != en) {
-        ESP_LOGI(TAG, "Direct logging: %s -> %s", 
-                 this->enable_direct_logs ? "enabled" : "disabled", 
+    if (this->enable_direct_logs != en) {        
+        char buffer[100];
+        snprintf(buffer, sizeof(buffer), "Direct logging: %s -> %s",
+                 this->enable_direct_logs ? "enabled" : "disabled",
                  en ? "enabled" : "disabled");
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
         this->enable_direct_logs = en;
     }
 }
