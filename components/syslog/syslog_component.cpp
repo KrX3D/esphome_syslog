@@ -92,7 +92,7 @@ void SyslogComponent::setup() {
         return;
     }
  
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "-------- Syslog started --------");
+    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "------------------------ Syslog started ------------------------");
     char buffer[100];
     snprintf(buffer, sizeof(buffer), "Started with server: %s -> %d",
              this->settings_.address.c_str(), this->settings_.port);
@@ -141,6 +141,10 @@ void SyslogComponent::set_server_port(uint16_t port) {
         this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
         this->settings_.port = port;
         
+         // Recreate the socket with the new port
+         if (this->globally_enabled) {
+             this->setup();
+         }        
     }
 }
 
