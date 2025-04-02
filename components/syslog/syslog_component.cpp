@@ -146,8 +146,8 @@ void SyslogComponent::set_server_port(uint16_t port) {
 void SyslogComponent::set_enable_logger_messages(bool en) {
     if (this->enable_logger != en) {
         //ESP_LOGI(TAG, "Logger messages: %s -> %s", 
-                 this->enable_logger ? "enabled" : "disabled", 
-                 en ? "enabled" : "disabled");
+                 //this->enable_logger ? "enabled" : "disabled", 
+                 //en ? "enabled" : "disabled");
         this->enable_logger = en;
     }
 }
@@ -155,8 +155,8 @@ void SyslogComponent::set_enable_logger_messages(bool en) {
 void SyslogComponent::set_strip_colors(bool strip_colors) {
     if (this->strip_colors != strip_colors) {
         //ESP_LOGI(TAG, "Strip colors: %s -> %s", 
-                 this->strip_colors ? "enabled" : "disabled", 
-                 strip_colors ? "enabled" : "disabled");
+                 //this->strip_colors ? "enabled" : "disabled", 
+                 //strip_colors ? "enabled" : "disabled");
         this->strip_colors = strip_colors;
     }
 }
@@ -164,8 +164,8 @@ void SyslogComponent::set_strip_colors(bool strip_colors) {
 void SyslogComponent::set_enable_direct_logs(bool en) {
     if (this->enable_direct_logs != en) {
         //ESP_LOGI(TAG, "Direct logging: %s -> %s", 
-                 this->enable_direct_logs ? "enabled" : "disabled", 
-                 en ? "enabled" : "disabled");
+                 //this->enable_direct_logs ? "enabled" : "disabled", 
+                 //en ? "enabled" : "disabled");
         this->enable_direct_logs = en;
     }
 }
