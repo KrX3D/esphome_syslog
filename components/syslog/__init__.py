@@ -28,8 +28,10 @@ DEPENDENCIES = ['logger','network','socket']
 
 debug_ns = cg.esphome_ns.namespace('debug')
 syslog_ns = cg.esphome_ns.namespace('syslog')
+
 SyslogComponent = syslog_ns.class_('SyslogComponent', cg.Component)
 SyslogLogAction = syslog_ns.class_('SyslogLogAction', automation.Action)
+
 SyslogAddFilterAction = syslog_ns.class_('SyslogAddFilterAction', automation.Action)
 SyslogRemoveFilterAction = syslog_ns.class_('SyslogRemoveFilterAction', automation.Action)
 SyslogClearFiltersAction = syslog_ns.class_('SyslogClearFiltersAction', automation.Action)
@@ -111,12 +113,14 @@ def to_code(config):
 def syslog_log_action_to_code(config, action_id, template_arg, args):
     paren = yield cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
+    
     template_ = yield cg.templatable(config[CONF_LEVEL], args, cg.uint8)
     cg.add(var.set_level(template_))
     template_ = yield cg.templatable(config[CONF_TAG], args, cg.std_string)
     cg.add(var.set_tag(template_))
     template_ = yield cg.templatable(config[CONF_PAYLOAD], args, cg.std_string)
     cg.add(var.set_payload(template_))
+    
     yield var
 
 @automation.register_action('syslog.add_filter', SyslogAddFilterAction, SYSLOG_ADD_FILTER_SCHEMA)
