@@ -44,7 +44,7 @@ void SyslogComponent::setup() {
 
     // Close existing socket if it exists
     if (this->socket_) {
-        this->socket_.reset();
+        //this->socket_.reset();
     }
 
     /*
@@ -147,7 +147,7 @@ void SyslogComponent::set_server_port(uint16_t port) {
         
          // Recreate the socket with the new port
          if (this->globally_enabled) {
-             //this->setup();
+             this->setup();
          }        
     }
 }
