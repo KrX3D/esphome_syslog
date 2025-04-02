@@ -38,7 +38,7 @@ SyslogComponent::SyslogComponent() {
 void SyslogComponent::setup() {
     // If component is globally disabled, don't set up the socket
     if (!this->globally_enabled) {
-        ESP_LOGI(TAG, "Syslog component is disabled, skipping setup");
+        //ESP_LOGI(TAG, "Syslog component is disabled, skipping setup");
         return;
     }
 
@@ -91,7 +91,7 @@ void SyslogComponent::setup() {
     }
  
     this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "Syslog started");
-    ESP_LOGI(TAG, "Started with server %s:%d", this->settings_.address.c_str(), this->settings_.port);
+    //ESP_LOGI(TAG, "Started with server %s:%d", this->settings_.address.c_str(), this->settings_.port);
     
     #ifdef USE_LOGGER
     if (logger::global_logger != nullptr) {
@@ -145,7 +145,7 @@ void SyslogComponent::set_server_port(uint16_t port) {
 
 void SyslogComponent::set_enable_logger_messages(bool en) {
     if (this->enable_logger != en) {
-        ESP_LOGI(TAG, "Logger messages: %s -> %s", 
+        //ESP_LOGI(TAG, "Logger messages: %s -> %s", 
                  this->enable_logger ? "enabled" : "disabled", 
                  en ? "enabled" : "disabled");
         this->enable_logger = en;
@@ -154,7 +154,7 @@ void SyslogComponent::set_enable_logger_messages(bool en) {
 
 void SyslogComponent::set_strip_colors(bool strip_colors) {
     if (this->strip_colors != strip_colors) {
-        ESP_LOGI(TAG, "Strip colors: %s -> %s", 
+        //ESP_LOGI(TAG, "Strip colors: %s -> %s", 
                  this->strip_colors ? "enabled" : "disabled", 
                  strip_colors ? "enabled" : "disabled");
         this->strip_colors = strip_colors;
@@ -163,7 +163,7 @@ void SyslogComponent::set_strip_colors(bool strip_colors) {
 
 void SyslogComponent::set_enable_direct_logs(bool en) {
     if (this->enable_direct_logs != en) {
-        ESP_LOGI(TAG, "Direct logging: %s -> %s", 
+        //ESP_LOGI(TAG, "Direct logging: %s -> %s", 
                  this->enable_direct_logs ? "enabled" : "disabled", 
                  en ? "enabled" : "disabled");
         this->enable_direct_logs = en;
@@ -172,9 +172,9 @@ void SyslogComponent::set_enable_direct_logs(bool en) {
 
 void SyslogComponent::set_globally_enabled(bool en) {
     if (this->globally_enabled != en) {
-        ESP_LOGI(TAG, "Syslog component: %s -> %s", 
-                 this->globally_enabled ? "enabled" : "disabled", 
-                 en ? "enabled" : "disabled");
+        //ESP_LOGI(TAG, "Syslog component: %s -> %s", 
+                 //this->globally_enabled ? "enabled" : "disabled", 
+                 //en ? "enabled" : "disabled");
         this->globally_enabled = en;
         
         // If enabling, make sure to set up the socket
@@ -191,12 +191,12 @@ void SyslogComponent::set_globally_enabled(bool en) {
 
 void SyslogComponent::add_filter(const std::string &tag) {
     this->tag_filters.insert(tag);
-    ESP_LOGI(TAG, "Added filter for tag: %s", tag.c_str());
+    //ESP_LOGI(TAG, "Added filter for tag: %s", tag.c_str());
 }
 
 void SyslogComponent::remove_filter(const std::string &tag) {
     this->tag_filters.erase(tag);
-    ESP_LOGI(TAG, "Removed filter for tag: %s", tag.c_str());
+    //ESP_LOGI(TAG, "Removed filter for tag: %s", tag.c_str());
 }
 
 bool SyslogComponent::has_filter(const std::string &tag) const {
