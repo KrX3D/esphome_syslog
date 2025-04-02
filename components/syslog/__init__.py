@@ -24,7 +24,7 @@ CONF_INCLUDE = "include"
 CONF_EXCLUDE = "exclude"
 CONF_FILTERS = "filters"
 
-DEPENDENCIES = ['logger','network']
+DEPENDENCIES = ['logger','network','socket']
 
 debug_ns = cg.esphome_ns.namespace('debug')
 syslog_ns = cg.esphome_ns.namespace('syslog')
@@ -66,8 +66,7 @@ CONFIG_SCHEMA = cv.All(
         cv.Optional(CONF_MIN_LEVEL, default="DEBUG"): validate_log_level,
         cv.Optional(CONF_FILTER_MODE, default="exclude"): validate_filter_mode,
         cv.Optional(CONF_FILTERS, default=[]): cv.ensure_list(cv.string),
-    }),
-    cv.only_with_arduino,
+    })
 )
 
 SYSLOG_LOG_ACTION_SCHEMA = cv.Schema({
