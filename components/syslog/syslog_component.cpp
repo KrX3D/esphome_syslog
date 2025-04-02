@@ -164,7 +164,7 @@ void SyslogComponent::set_enable_direct_logs(bool en) {
 
 void SyslogComponent::set_globally_enabled(bool en) {
     if (this->globally_enabled != en) {
-        ESP_LOGI(this->tag_.c_str(), "Syslog component: %s -> %s", 
+        ESP_LOGI(ESPHOME_LOG_LEVEL_INFO, "syslog", "Syslog component: %s -> %s", 
                  this->globally_enabled ? "enabled" : "disabled", 
                  en ? "enabled" : "disabled");
         
