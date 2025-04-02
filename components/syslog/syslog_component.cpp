@@ -124,31 +124,51 @@ void SyslogComponent::loop() {
 
 void SyslogComponent::set_server_ip(const std::string &address) {
     if (this->settings_.address != address) {
-        char buffer[150];
-        snprintf(buffer, sizeof(buffer), "Syslog server IP updated: %s -> %s",
-                 this->settings_.address.c_str(), address.c_str());
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+        // Store the new address
+        std::string old_address = this->settings_.address;
         this->settings_.address = address;
-         
-         // Recreate the socket with the new address
-         if (this->globally_enabled) {
-             this->setup();
-         }        
+        
+        // Only attempt to recreate the socket if we're already set up
+        if (this->globally_enabled && this->is_setup()) {
+            // First close the existing socket if it exists
+            if (this->socket_) {
+                this->socket_.reset();
+            }
+            
+            // Create a new socket with the updated address
+            this->setup();
+            
+            // Log the change AFTER the socket is set up
+            char buffer[150];
+            snprintf(buffer, sizeof(buffer), "Syslog server IP updated: %s -> %s",
+                    old_address.c_str(), address.c_str());
+            this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+        }
     }
 }
 
 void SyslogComponent::set_server_port(uint16_t port) {
     if (this->settings_.port != port) {
-        char buffer[150];
-        snprintf(buffer, sizeof(buffer), "Syslog server port updated: %d -> %d",
-                 this->settings_.port, port);
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+        // Store the old port for logging
+        uint16_t old_port = this->settings_.port;
         this->settings_.port = port;
         
-         // Recreate the socket with the new port
-         if (this->globally_enabled) {
-             this->setup();
-         }        
+        // Only attempt to recreate the socket if we're already set up
+        if (this->globally_enabled && this->is_setup()) {
+            // First close the existing socket if it exists
+            if (this->socket_) {
+                this->socket_.reset();
+            }
+            
+            // Create a new socket with the updated port
+            this->setup();
+            
+            // Log the change AFTER the socket is set up
+            char buffer[150];
+            snprintf(buffer, sizeof(buffer), "Syslog server port updated: %d -> %d",
+                    old_port, port);
+            this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+        }
     }
 }
 
