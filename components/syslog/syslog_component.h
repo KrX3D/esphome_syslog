@@ -7,6 +7,7 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/log.h"
 #include "esphome/components/socket/socket.h"
+#include "esphome/components/text_sensor/text_sensor.h"
 #include <unordered_map>
 #include <set>
 
@@ -60,16 +61,25 @@ class SyslogComponent : public Component {
         // Filter management
         void set_filter_mode(bool include_mode) { this->filter_include_mode = include_mode; }
         bool get_filter_mode() const { return this->filter_include_mode; }
-
-        // Add new methods for filter string
-        void set_filter_string(const std::string &filter_string);
-        std::string get_filter_string() const { return this->filter_string; }
         
-        void clear_filters() { this->tag_filters.clear(); }
+        void clear_filters();
         void add_filter(const std::string &tag);
         void remove_filter(const std::string &tag);
         bool has_filter(const std::string &tag) const;
         std::vector<std::string> get_filters() const;
+        
+        // New filter string methods
+        void set_filter_string(const std::string &filter_string);
+        std::string get_filter_string() const { return this->filter_string; }
+        
+        // Register a text sensor for the filter string
+        void register_filter_string_text_sensor(text_sensor::TextSensor *text_sensor) {
+            this->filter_string_text_sensor_ = text_sensor;
+            // Set initial value
+            if (this->filter_string_text_sensor_ != nullptr) {
+                this->filter_string_text_sensor_->publish_state(this->filter_string);
+            }
+        }
         
         void log(uint8_t level, const std::string &tag, const std::string &payload);
         
@@ -85,8 +95,9 @@ class SyslogComponent : public Component {
         bool enable_direct_logs;  // New: Controls whether direct log() calls work
         bool globally_enabled;    // New: Global on/off switch for the component
         bool filter_include_mode; // true = include only these tags, false = exclude these tags
-        std::string filter_string;  // Store the original filter string
         std::set<std::string> tag_filters;
+        std::string filter_string;  // Store the original filter string
+        text_sensor::TextSensor *filter_string_text_sensor_ = nullptr;
         SYSLOGSettings settings_;
         std::unique_ptr<socket::Socket> socket_ = nullptr;
         struct sockaddr_storage server;
@@ -139,6 +150,18 @@ public:
     SyslogClearFiltersAction(SyslogComponent *parent) : parent_(parent) {}
     void play(Ts... x) override {
         this->parent_->clear_filters();
+    }
+protected:
+    SyslogComponent *parent_;
+};
+
+// Custom action to set filter string
+template<typename... Ts> class SyslogSetFilterStringAction : public Action<Ts...> {
+public:
+    SyslogSetFilterStringAction(SyslogComponent *parent) : parent_(parent) {}
+    TEMPLATABLE_VALUE(std::string, filter_string)
+    void play(Ts... x) override {
+        this->parent_->set_filter_string(this->filter_string_.value(x...));
     }
 protected:
     SyslogComponent *parent_;
