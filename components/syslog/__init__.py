@@ -38,6 +38,7 @@ SyslogLogAction = syslog_ns.class_('SyslogLogAction', automation.Action)
 SyslogAddFilterAction = syslog_ns.class_('SyslogAddFilterAction', automation.Action)
 SyslogRemoveFilterAction = syslog_ns.class_('SyslogRemoveFilterAction', automation.Action)
 SyslogClearFiltersAction = syslog_ns.class_('SyslogClearFiltersAction', automation.Action)
+SyslogSetFilterStringAction = syslog_ns.class_('SyslogSetFilterStringAction', automation.Action)
 
 # Define all log levels in uppercase for validation
 LOG_LEVEL_OPTIONS = [level.upper() for level in logger.LOG_LEVELS]
@@ -163,7 +164,7 @@ def syslog_clear_filters_action_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg, paren)
     yield var
 
-@automation.register_action('syslog.set_filter_string', automation.ActionClass.TEMPLATABLE, SYSLOG_SET_FILTER_STRING_SCHEMA)
+@automation.register_action('syslog.set_filter_string', SyslogSetFilterStringAction, SYSLOG_SET_FILTER_STRING_SCHEMA)
 def syslog_set_filter_string_action_to_code(config, action_id, template_arg, args):
     paren = yield cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
