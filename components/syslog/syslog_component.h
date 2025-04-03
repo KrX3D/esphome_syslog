@@ -60,6 +60,10 @@ class SyslogComponent : public Component {
         // Filter management
         void set_filter_mode(bool include_mode) { this->filter_include_mode = include_mode; }
         bool get_filter_mode() const { return this->filter_include_mode; }
+
+        // Add new methods for filter string
+        void set_filter_string(const std::string &filter_string);
+        std::string get_filter_string() const { return this->filter_string; }
         
         void clear_filters() { this->tag_filters.clear(); }
         void add_filter(const std::string &tag);
@@ -81,6 +85,7 @@ class SyslogComponent : public Component {
         bool enable_direct_logs;  // New: Controls whether direct log() calls work
         bool globally_enabled;    // New: Global on/off switch for the component
         bool filter_include_mode; // true = include only these tags, false = exclude these tags
+        std::string filter_string;  // Store the original filter string
         std::set<std::string> tag_filters;
         SYSLOGSettings settings_;
         std::unique_ptr<socket::Socket> socket_ = nullptr;
