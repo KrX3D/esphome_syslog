@@ -248,8 +248,8 @@ void SyslogComponent::clear_filters() {
     this->filter_string = "";
     
     // Update text sensor if available
-    if (this->filter_string_text_sensor_ != nullptr) {
-        this->filter_string_text_sensor_->publish_state("");
+    if (this->filter_string_text_ != nullptr) {
+        this->filter_string_text_->publish_state("");
     }
     
     this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "All filters cleared");
@@ -299,8 +299,8 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
         }
         
         // Update text sensor if available
-        if (this->filter_string_text_sensor_ != nullptr) {
-            this->filter_string_text_sensor_->publish_state(this->filter_string);
+        if (this->filter_string_text_ != nullptr) {
+            this->filter_string_text_->publish_state(this->filter_string);
         }
         
         char buffer[150];
