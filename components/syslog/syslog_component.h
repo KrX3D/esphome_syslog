@@ -73,11 +73,11 @@ class SyslogComponent : public Component {
         std::string get_filter_string() const { return this->filter_string; }
         
         // Register a text sensor for the filter string
-        void register_filter_string_text_sensor(text::Text *text_sensor) {
-            this->filter_string_text_sensor_ = text_sensor;
+        void register_filter_string_text(text::Text *text) {
+            this->filter_string_text_ = text;
             // Set initial value
-            if (this->filter_string_text_sensor_ != nullptr) {
-                this->filter_string_text_sensor_->publish_state(this->filter_string);
+            if (this->filter_string_text_ != nullptr) {
+                this->filter_string_text_->publish_state(this->filter_string);
             }
         }
         
@@ -97,7 +97,7 @@ class SyslogComponent : public Component {
         bool filter_include_mode; // true = include only these tags, false = exclude these tags
         std::set<std::string> tag_filters;
         std::string filter_string;  // Store the original filter string
-        text::Text *filter_string_text_sensor_ = nullptr;
+        text::Text *filter_string_text_ = nullptr;
         SYSLOGSettings settings_;
         std::unique_ptr<socket::Socket> socket_ = nullptr;
         struct sockaddr_storage server;
