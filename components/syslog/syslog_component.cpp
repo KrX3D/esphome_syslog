@@ -33,6 +33,7 @@ SyslogComponent::SyslogComponent() {
     this->enable_logger = true;
     this->enable_direct_logs = true;    // New: Enable direct logging by default
     this->globally_enabled = true;      // New: Enable component by default
+    this->filter_string = "";           // Initialize empty filter string
 }
 
 void SyslogComponent::setup() {
@@ -240,7 +241,65 @@ void SyslogComponent::remove_filter(const std::string &tag) {
     char buffer[150];
     snprintf(buffer, sizeof(buffer), "Removed filter for tag: '%s'", tag.c_str());
     this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer));
+}
 
+void SyslogComponent::clear_filters() {
+    this->tag_filters.clear();
+    this->filter_string = "";
+    
+    // Update text sensor if available
+    if (this->filter_string_text_sensor_ != nullptr) {
+        this->filter_string_text_sensor_->publish_state("");
+    }
+    
+    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "All filters cleared");
+}
+
+void SyslogComponent::set_filter_string(const std::string &filter_string) {
+    if (this->filter_string != filter_string) {
+        this->filter_string = filter_string;
+        
+        // Clear existing filters
+        this->tag_filters.clear();
+        
+        // Parse the new filter string
+        if (!filter_string.empty()) {
+            size_t start = 0;
+            size_t end = 0;
+            
+            while ((end = filter_string.find(',', start)) != std::string::npos) {
+                std::string item = filter_string.substr(start, end - start);
+                // Trim whitespace
+                item.erase(0, item.find_first_not_of(" \t\r\n"));
+                item.erase(item.find_last_not_of(" \t\r\n") + 1);
+                
+                if (!item.empty()) {
+                    this->add_filter(item);
+                }
+                
+                start = end + 1;
+            }
+            
+            // Add the last item
+            std::string item = filter_string.substr(start);
+            // Trim whitespace
+            item.erase(0, item.find_first_not_of(" \t\r\n"));
+            item.erase(item.find_last_not_of(" \t\r\n") + 1);
+            
+            if (!item.empty()) {
+                this->add_filter(item);
+            }
+        }
+        
+        // Update text sensor if available
+        if (this->filter_string_text_sensor_ != nullptr) {
+            this->filter_string_text_sensor_->publish_state(this->filter_string);
+        }
+        
+        char buffer[150];
+        snprintf(buffer, sizeof(buffer), "Filter string updated: '%s'", filter_string.c_str());
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+    }
 }
 
 bool SyslogComponent::has_filter(const std::string &tag) const {
