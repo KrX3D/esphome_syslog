@@ -255,6 +255,15 @@ void SyslogComponent::clear_filters() {
     this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "All filters cleared");
 }
 
+// Helper function to trim whitespace
+std::string trim(const std::string &str) {
+    size_t first = str.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return "";
+    size_t last = str.find_last_not_of(" \t\r\n");
+    return str.substr(first, (last - first + 1));
+}
+
 void SyslogComponent::set_filter_string(const std::string &filter_string) {
     if (this->filter_string != filter_string) {
         this->filter_string = filter_string;
@@ -270,8 +279,7 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
             while ((end = filter_string.find(',', start)) != std::string::npos) {
                 std::string item = filter_string.substr(start, end - start);
                 // Trim whitespace
-                item.erase(0, item.find_first_not_of(" \t\r\n"));
-                item.erase(item.find_last_not_of(" \t\r\n") + 1);
+                item = trim(item);
                 
                 if (!item.empty()) {
                     this->add_filter(item);
@@ -283,8 +291,7 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
             // Add the last item
             std::string item = filter_string.substr(start);
             // Trim whitespace
-            item.erase(0, item.find_first_not_of(" \t\r\n"));
-            item.erase(item.find_last_not_of(" \t\r\n") + 1);
+            item = trim(item);
             
             if (!item.empty()) {
                 this->add_filter(item);
