@@ -13,7 +13,7 @@ from esphome.const import (
     CONF_MODE,
     CONF_INVERTED
 )
-from esphome.components import logger
+from esphome.components import logger, text_sensor
 
 CONF_STRIP_COLORS = "strip_colors"
 CONF_ENABLE_LOGGER_MESSAGES = "enable_logger"
@@ -25,7 +25,7 @@ CONF_FILTER_MODE = "filter_mode"
 CONF_INCLUDE = "include"
 CONF_EXCLUDE = "exclude"
 CONF_FILTERS = "filters"
-CONF_FILTER_STRING = "filter_string"
+CONF_FILTER_STRING = "filter_string"  # New parameter for comma-separated filters
 
 DEPENDENCIES = ['logger','network','socket']
 
@@ -73,7 +73,7 @@ CONFIG_SCHEMA = cv.All(
         cv.Optional(CONF_MIN_LEVEL, default="DEBUG"): validate_log_level,
         cv.Optional(CONF_FILTER_MODE, default="exclude"): validate_filter_mode,
         cv.Optional(CONF_FILTERS, default=[]): cv.ensure_list(cv.string),
-        cv.Optional(CONF_FILTER_STRING, default=""): cv.string,
+        cv.Optional(CONF_FILTER_STRING, default=""): cv.string,  # New parameter for comma-separated filters
     })
 )
 
@@ -98,6 +98,11 @@ SYSLOG_CLEAR_FILTERS_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.use_id(SyslogComponent),
 })
 
+SYSLOG_SET_FILTER_STRING_SCHEMA = cv.Schema({
+    cv.GenerateID(): cv.use_id(SyslogComponent),
+    cv.Required(CONF_FILTER_STRING): cv.templatable(cv.string),
+})
+
 def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     yield cg.register_component(var, config)
@@ -115,10 +120,8 @@ def to_code(config):
     
     # Parse filter string and add filters
     if config[CONF_FILTER_STRING]:
-        # Split by comma and strip whitespace
-        filters = [f.strip() for f in config[CONF_FILTER_STRING].split(',') if f.strip()]
-        for filter_tag in filters:
-            cg.add(var.add_filter(filter_tag))
+        # Set the filter string directly
+        cg.add(var.set_filter_string(config[CONF_FILTER_STRING]))
     else:
         # Use the original filters list if filter_string is empty
         for filter_tag in config[CONF_FILTERS]:
@@ -158,4 +161,12 @@ def syslog_remove_filter_action_to_code(config, action_id, template_arg, args):
 def syslog_clear_filters_action_to_code(config, action_id, template_arg, args):
     paren = yield cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
+    yield var
+
+@automation.register_action('syslog.set_filter_string', automation.ActionClass.TEMPLATABLE, SYSLOG_SET_FILTER_STRING_SCHEMA)
+def syslog_set_filter_string_action_to_code(config, action_id, template_arg, args):
+    paren = yield cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    template_ = yield cg.templatable(config[CONF_FILTER_STRING], args, cg.std_string)
+    cg.add(var.set_filter_string(template_))
     yield var
