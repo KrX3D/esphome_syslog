@@ -25,6 +25,7 @@ CONF_FILTER_MODE = "filter_mode"
 CONF_INCLUDE = "include"
 CONF_EXCLUDE = "exclude"
 CONF_FILTERS = "filters"
+CONF_FILTER_STRING = "filter_string"
 
 DEPENDENCIES = ['logger','network','socket']
 
@@ -72,6 +73,7 @@ CONFIG_SCHEMA = cv.All(
         cv.Optional(CONF_MIN_LEVEL, default="DEBUG"): validate_log_level,
         cv.Optional(CONF_FILTER_MODE, default="exclude"): validate_filter_mode,
         cv.Optional(CONF_FILTERS, default=[]): cv.ensure_list(cv.string),
+        cv.Optional(CONF_FILTER_STRING, default=""): cv.string,
     })
 )
 
@@ -111,9 +113,16 @@ def to_code(config):
     cg.add(var.set_min_log_level(logger.LOG_LEVELS[config[CONF_MIN_LEVEL]]))
     cg.add(var.set_filter_mode(config[CONF_FILTER_MODE]))
     
-    # Add initial filters
-    for filter_tag in config[CONF_FILTERS]:
-        cg.add(var.add_filter(filter_tag))
+    # Parse filter string and add filters
+    if config[CONF_FILTER_STRING]:
+        # Split by comma and strip whitespace
+        filters = [f.strip() for f in config[CONF_FILTER_STRING].split(',') if f.strip()]
+        for filter_tag in filters:
+            cg.add(var.add_filter(filter_tag))
+    else:
+        # Use the original filters list if filter_string is empty
+        for filter_tag in config[CONF_FILTERS]:
+            cg.add(var.add_filter(filter_tag))
 
 @automation.register_action('syslog.log', SyslogLogAction, SYSLOG_LOG_ACTION_SCHEMA)
 def syslog_log_action_to_code(config, action_id, template_arg, args):
