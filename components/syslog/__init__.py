@@ -13,7 +13,7 @@ from esphome.const import (
     CONF_MODE,
     CONF_INVERTED
 )
-from esphome.components import logger, text_sensor
+from esphome.components import logger, text
 
 CONF_STRIP_COLORS = "strip_colors"
 CONF_ENABLE_LOGGER_MESSAGES = "enable_logger"
