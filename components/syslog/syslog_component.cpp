@@ -35,8 +35,11 @@ SyslogComponent::SyslogComponent() {
     this->globally_enabled = true;      // New: Enable component by default
     this->filter_string = "";           // Initialize empty filter string
     
+    // Create a unique preference key using the fnv1 hash of "syslog_filter"
+    uint32_t preference_key = fnv1_hash("syslog_filter");
+    
     // Set up the preference for the filter string
-    this->filter_string_pref_ = global_preferences->make_preference<std::string>(this->preference_handle_, true);
+    this->filter_string_pref_ = global_preferences->make_preference<std::string>(preference_key, true);
     
     // Try to load saved filter string
     std::string saved_string;
