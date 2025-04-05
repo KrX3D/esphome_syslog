@@ -35,20 +35,14 @@ SyslogComponent::SyslogComponent() {
     this->globally_enabled = true;      // New: Enable component by default
     this->filter_string = "";           // Initialize empty filter string
     
-    // Generate a hash for our preference key
-    this->preference_handle_ = fnv1_hash("syslog_filter");
+    // Set up the preference for the filter string
+    this->filter_string_pref_ = global_preferences->make_preference<std::string>(this->preference_handle_, true);
     
     // Try to load saved filter string
-    global_preferences->begin_load();
-    size_t length = global_preferences->get_preference_length(this->preference_handle_);
-    if (length > 0) {
-        std::vector<char> buffer(length + 1, 0);
-        if (global_preferences->load_preference_raw(this->preference_handle_, buffer.data(), length)) {
-            buffer[length] = '\0';  // Ensure null termination
-            this->filter_string = std::string(buffer.data());
-        }
+    std::string saved_string;
+    if (this->filter_string_pref_.load(&saved_string)) {
+        this->filter_string = saved_string;
     }
-    global_preferences->end_load();
 }
 
 // Helper function to trim whitespace
@@ -302,7 +296,7 @@ void SyslogComponent::clear_filters() {
     this->filter_string = "";
     
     // Save empty string to preferences
-    global_preferences->save_preference_raw(this->preference_handle_, "", 0);
+    this->filter_string_pref_.save(&this->filter_string);
     
     // Update text sensor if available
     if (this->filter_string_text_ != nullptr) {
@@ -317,9 +311,7 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
         this->filter_string = filter_string;
         
         // Save to preferences
-        global_preferences->save_preference_raw(this->preference_handle_, 
-                                              filter_string.c_str(), 
-                                              filter_string.length());
+        this->filter_string_pref_.save(&this->filter_string);
         
         // Clear existing filters
         this->tag_filters.clear();
