@@ -43,6 +43,15 @@ SyslogComponent::SyslogComponent() {
     }
 }
 
+// Helper function to trim whitespace
+std::string trim(const std::string &str) {
+    size_t first = str.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return "";
+    size_t last = str.find_last_not_of(" \t\r\n");
+    return str.substr(first, (last - first + 1));
+}
+
 void SyslogComponent::setup() {
     // If component is globally disabled, don't set up the socket
     if (!this->globally_enabled) {
@@ -293,15 +302,6 @@ void SyslogComponent::clear_filters() {
     }
     
     this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "All filters cleared");
-}
-
-// Helper function to trim whitespace
-std::string trim(const std::string &str) {
-    size_t first = str.find_first_not_of(" \t\r\n");
-    if (first == std::string::npos)
-        return "";
-    size_t last = str.find_last_not_of(" \t\r\n");
-    return str.substr(first, (last - first + 1));
 }
 
 void SyslogComponent::set_filter_string(const std::string &filter_string) {
