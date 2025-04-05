@@ -103,7 +103,7 @@ class SyslogComponent : public Component {
         std::unique_ptr<socket::Socket> socket_ = nullptr;
         struct sockaddr_storage server;
         socklen_t server_socklen;
-        uint32_t preference_handle_;
+        ESPPreferenceObject filter_string_pref_;
 };
 
 // Custom action to log a message
