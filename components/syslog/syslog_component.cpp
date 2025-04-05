@@ -35,12 +35,20 @@ SyslogComponent::SyslogComponent() {
     this->globally_enabled = true;      // New: Enable component by default
     this->filter_string = "";           // Initialize empty filter string
     
-    // Register preferences with ESPHome
-    this->pref_ = global_preferences->make_preference<std::string>("syslog_filter", true);
-    std::string saved_filter;
-    if (this->pref_.load(&saved_filter)) {
-        this->filter_string = saved_filter;
+    // Generate a hash for our preference key
+    this->preference_handle_ = fnv1_hash("syslog_filter");
+    
+    // Try to load saved filter string
+    global_preferences->begin_load();
+    size_t length = global_preferences->get_preference_length(this->preference_handle_);
+    if (length > 0) {
+        std::vector<char> buffer(length + 1, 0);
+        if (global_preferences->load_preference_raw(this->preference_handle_, buffer.data(), length)) {
+            buffer[length] = '\0';  // Ensure null termination
+            this->filter_string = std::string(buffer.data());
+        }
     }
+    global_preferences->end_load();
 }
 
 // Helper function to trim whitespace
@@ -294,7 +302,7 @@ void SyslogComponent::clear_filters() {
     this->filter_string = "";
     
     // Save empty string to preferences
-    this->pref_.save(&this->filter_string);
+    global_preferences->save_preference_raw(this->preference_handle_, "", 0);
     
     // Update text sensor if available
     if (this->filter_string_text_ != nullptr) {
@@ -309,7 +317,9 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
         this->filter_string = filter_string;
         
         // Save to preferences
-        this->pref_.save(&this->filter_string);
+        global_preferences->save_preference_raw(this->preference_handle_, 
+                                              filter_string.c_str(), 
+                                              filter_string.length());
         
         // Clear existing filters
         this->tag_filters.clear();
