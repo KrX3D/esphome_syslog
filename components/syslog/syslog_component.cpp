@@ -36,7 +36,7 @@ SyslogComponent::SyslogComponent() {
     this->filter_string = "";           // Initialize empty filter string
     
     // Register preferences with ESPHome
-    this->pref_ = global_preferences->make_preference<std::string>(this->get_component_key(), true);
+    this->pref_ = global_preferences->make_preference<std::string>("syslog_filter", true);
     std::string saved_filter;
     if (this->pref_.load(&saved_filter)) {
         this->filter_string = saved_filter;
