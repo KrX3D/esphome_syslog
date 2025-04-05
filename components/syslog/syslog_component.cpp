@@ -34,6 +34,13 @@ SyslogComponent::SyslogComponent() {
     this->enable_direct_logs = true;    // New: Enable direct logging by default
     this->globally_enabled = true;      // New: Enable component by default
     this->filter_string = "";           // Initialize empty filter string
+    
+    // Register preferences with ESPHome
+    this->pref_ = global_preferences->make_preference<std::string>(this->get_component_key(), true);
+    std::string saved_filter;
+    if (this->pref_.load(&saved_filter)) {
+        this->filter_string = saved_filter;
+    }
 }
 
 void SyslogComponent::setup() {
@@ -41,6 +48,36 @@ void SyslogComponent::setup() {
     if (!this->globally_enabled) {
         this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", "Syslog component is disabled, skipping setup");
         return;
+    }
+    
+    // Load filters from saved filter string (if we have a string but no filters yet)
+    if (!this->filter_string.empty() && this->tag_filters.empty()) {
+        // Parse the filter string
+        size_t start = 0;
+        size_t end = 0;
+        
+        while ((end = this->filter_string.find(',', start)) != std::string::npos) {
+            std::string item = this->filter_string.substr(start, end - start);
+            item = trim(item);
+            
+            if (!item.empty()) {
+                this->tag_filters.insert(item);
+            }
+            
+            start = end + 1;
+        }
+        
+        std::string item = this->filter_string.substr(start);
+        item = trim(item);
+        
+        if (!item.empty()) {
+            this->tag_filters.insert(item);
+        }
+        
+        // Update text sensor if available
+        if (this->filter_string_text_ != nullptr) {
+            this->filter_string_text_->publish_state(this->filter_string);
+        }
     }
 
     // Close existing socket if it exists
@@ -247,6 +284,9 @@ void SyslogComponent::clear_filters() {
     this->tag_filters.clear();
     this->filter_string = "";
     
+    // Save empty string to preferences
+    this->pref_.save(&this->filter_string);
+    
     // Update text sensor if available
     if (this->filter_string_text_ != nullptr) {
         this->filter_string_text_->publish_state("");
@@ -267,6 +307,9 @@ std::string trim(const std::string &str) {
 void SyslogComponent::set_filter_string(const std::string &filter_string) {
     if (this->filter_string != filter_string) {
         this->filter_string = filter_string;
+        
+        // Save to preferences
+        this->pref_.save(&this->filter_string);
         
         // Clear existing filters
         this->tag_filters.clear();
