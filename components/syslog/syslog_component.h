@@ -10,7 +10,6 @@
 #include "esphome/components/text/text.h"
 #include <unordered_map>
 #include <set>
-#include "esphome/core/preferences.h"
 
 namespace esphome {
 namespace syslog {
@@ -103,10 +102,6 @@ class SyslogComponent : public Component {
         std::unique_ptr<socket::Socket> socket_ = nullptr;
         struct sockaddr_storage server;
         socklen_t server_socklen;
-        
-        uint32_t filter_string_pref_;
-        void load_filter_string_from_preferences();
-        void save_filter_string_to_preferences();
 };
 
 // Custom action to log a message
