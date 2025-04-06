@@ -103,17 +103,10 @@ class SyslogComponent : public Component {
         std::unique_ptr<socket::Socket> socket_ = nullptr;
         struct sockaddr_storage server;
         socklen_t server_socklen;
-    
-        // Methods for loading/saving filter string
-        void load_filter_string();
-        void save_filter_string();
-    
-        // New methods for persistence
+        
+        uint32_t filter_string_pref_;
         void load_filter_string_from_preferences();
         void save_filter_string_to_preferences();
-        
-        // Use this to track if we've already initialized filters
-        bool filters_initialized_ = false;
 };
 
 // Custom action to log a message
