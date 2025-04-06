@@ -3,6 +3,7 @@
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
 #include "esphome/core/version.h"
+#include <algorithm>  // for std::transform
 
 #ifdef USE_LOGGER
 #include "esphome/components/logger/logger.h"
@@ -333,27 +334,34 @@ bool SyslogComponent::should_send_log(const std::string &tag) {
     // Extract component name from tag (before the colon)
     std::string component = extract_component_name(tag);
 
-    // Special case for Include mode: if filter is empty, include nothing.
-    if (this->filter_include_mode && this->tag_filters.empty()) {
-        return false;
-    }
-    // Special case for Exclude mode: if filter string is "ALL", exclude all logs.
-    if (!this->filter_include_mode && this->filter_string == "ALL") {
-        return false;
-    }
-    // For Exclude mode: if no filters are set, allow all logs.
-    if (!this->filter_include_mode && this->tag_filters.empty()) {
-        return true;
-    }
+    // Create a lower-case copy of the filter string for comparison.
+    std::string filter_lower = this->filter_string;
+    std::transform(filter_lower.begin(), filter_lower.end(), filter_lower.begin(), ::tolower);
 
-    bool has_component = this->has_filter(component);
-
-    // In Include mode: only send logs for components in the filter list.
     if (this->filter_include_mode) {
-        return has_component;
+        // In Include Mode:
+        // - "all" means include everything.
+        // - Empty filter means include nothing.
+        if (filter_lower == "all") {
+            return true;
+        }
+        if (this->filter_string.empty()) {
+            return false;
+        }
+        // Otherwise, include only if the component is in the filter list.
+        return this->has_filter(component);
     } else {
-        // In Exclude mode: send logs for components NOT in the filter list.
-        return !has_component;
+        // In Exclude Mode:
+        // - "all" means exclude everything.
+        // - Empty filter means include everything.
+        if (filter_lower == "all") {
+            return false;
+        }
+        if (this->filter_string.empty()) {
+            return true;
+        }
+        // Otherwise, exclude the log if the component is in the filter list.
+        return !this->has_filter(component);
     }
 }
 
