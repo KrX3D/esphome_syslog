@@ -107,6 +107,10 @@ class SyslogComponent : public Component {
         // Methods for loading/saving filter string
         void load_filter_string();
         void save_filter_string();
+    
+        // New methods for persistence
+        void load_filter_string_from_preferences();
+        void save_filter_string_to_preferences();
         
         // Use this to track if we've already initialized filters
         bool filters_initialized_ = false;
