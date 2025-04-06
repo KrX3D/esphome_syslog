@@ -36,16 +36,10 @@ SyslogComponent::SyslogComponent() {
     this->filter_string = "";           // Initialize empty filter string
     
     // Create a unique preference key using the fnv1 hash of "syslog_filter"
-    uint32_t preference_key = fnv1_hash("syslog_filter");
-    
-    // Set up the preference for the filter string
-    this->filter_string_pref_ = global_preferences->make_preference<std::string>(preference_key, true);
+    this->filter_string_pref_ = fnv1_hash("syslog_filter");
     
     // Try to load saved filter string
-    std::string saved_string;
-    if (this->filter_string_pref_.load(&saved_string)) {
-        this->filter_string = saved_string;
-    }
+    this->load_filter_string_from_preferences();
 }
 
 // Helper function to trim whitespace
@@ -199,6 +193,38 @@ void SyslogComponent::set_server_ip(const std::string &address) {
     }
 }
 
+void SyslogComponent::load_filter_string_from_preferences() {
+    size_t length = 0;
+    
+    // First, get the length of the stored string
+    if (global_preferences->get_blob_length(this->filter_string_pref_, &length)) {
+        if (length > 0) {
+            // Allocate buffer for the string data
+            std::vector<uint8_t> buffer(length);
+            
+            // Load the string data
+            if (global_preferences->get_blob(this->filter_string_pref_, buffer.data(), length)) {
+                // Convert to string
+                this->filter_string = std::string(reinterpret_cast<char*>(buffer.data()), length);
+            }
+        }
+    }
+}
+
+void SyslogComponent::save_filter_string_to_preferences() {
+    if (this->filter_string.empty()) {
+        // If empty, just remove the preference entry
+        global_preferences->remove(this->filter_string_pref_);
+    } else {
+        // Save the string data as bytes
+        global_preferences->put_blob(
+            this->filter_string_pref_,
+            reinterpret_cast<const uint8_t*>(this->filter_string.c_str()),
+            this->filter_string.length()
+        );
+    }
+}
+
 void SyslogComponent::set_server_port(uint16_t port) {
     if (this->settings_.port != port) {
         // Store the old port for logging
@@ -299,7 +325,7 @@ void SyslogComponent::clear_filters() {
     this->filter_string = "";
     
     // Save empty string to preferences
-    this->filter_string_pref_.save(&this->filter_string);
+    this->save_filter_string_to_preferences();
     
     // Update text sensor if available
     if (this->filter_string_text_ != nullptr) {
@@ -314,7 +340,7 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
         this->filter_string = filter_string;
         
         // Save to preferences
-        this->filter_string_pref_.save(&this->filter_string);
+        this->save_filter_string_to_preferences();
         
         // Clear existing filters
         this->tag_filters.clear();
