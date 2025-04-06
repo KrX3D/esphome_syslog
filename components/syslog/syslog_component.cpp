@@ -35,6 +35,12 @@ SyslogComponent::SyslogComponent() {
     this->enable_direct_logs = true;    // New: Enable direct logging by default
     this->globally_enabled = true;      // New: Enable component by default
     this->filter_string = "";           // Initialize empty filter string
+     
+     // Create a unique preference key using the fnv1 hash of "syslog_filter"
+     this->filter_string_pref_ = fnv1_hash("syslog_filter");
+     
+     // Try to load saved filter string
+     this->load_filter_string_from_preferences();
 }
 
 // Helper function to trim whitespace
@@ -52,9 +58,35 @@ void SyslogComponent::setup() {
         this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", "Syslog component is disabled, skipping setup");
         return;
     }
-    
-    // Load filters from preferences if available
-    this->load_filter_string_from_preferences();
+     // Load filters from saved filter string (if we have a string but no filters yet)
+     if (!this->filter_string.empty() && this->tag_filters.empty()) {
+         // Parse the filter string
+         size_t start = 0;
+         size_t end = 0;
+         
+         while ((end = this->filter_string.find(',', start)) != std::string::npos) {
+             std::string item = this->filter_string.substr(start, end - start);
+             item = trim(item);
+             
+             if (!item.empty()) {
+                 this->tag_filters.insert(item);
+             }
+             
+             start = end + 1;
+         }
+         
+         std::string item = this->filter_string.substr(start);
+         item = trim(item);
+         
+         if (!item.empty()) {
+             this->tag_filters.insert(item);
+         }
+         
+         // Update text sensor if available
+         if (this->filter_string_text_ != nullptr) {
+             this->filter_string_text_->publish_state(this->filter_string);
+         }
+     }
 
     // Close existing socket if it exists
     if (this->socket_) {
@@ -136,51 +168,21 @@ void SyslogComponent::setup() {
 void SyslogComponent::loop() {
 }
 
-void SyslogComponent::load_filter_string_from_preferences() {
-    // Load filter string from preferences
-    ESPPreferenceObject pref = global_preferences->make_preference<std::string>(FILTER_PREF_KEY);
-    if (!pref.load(&this->filter_string)) {
-        ESP_LOGD("syslog", "No saved filter string found");
-    } else {
-        char buffer[150];
-        snprintf(buffer, sizeof(buffer), "Loaded filter string from flash: '%s'", this->filter_string.c_str());
-        ESP_LOGD("syslog", "%s", buffer);
-    }
-    
-    // Parse the filter string to populate tag_filters
-    this->tag_filters.clear();
-    
-    if (!this->filter_string.empty()) {
-        size_t start = 0;
-        size_t end = 0;
-        
-        while ((end = this->filter_string.find(',', start)) != std::string::npos) {
-            std::string item = this->filter_string.substr(start, end - start);
-            item = trim(item);
-            
-            if (!item.empty()) {
-                this->tag_filters.insert(item);
-            }
-            
-            start = end + 1;
-        }
-        
-        std::string item = this->filter_string.substr(start);
-        item = trim(item);
-        
-        if (!item.empty()) {
-            this->tag_filters.insert(item);
-        }
-    }
-    
-    // Initialize filters flag
-    this->filters_initialized_ = true;
-    
-    // Update text sensor if available
-    if (this->filter_string_text_ != nullptr) {
-        this->filter_string_text_->publish_state(this->filter_string);
-    }
-}
+ void SyslogComponent::load_filter_string_from_preferences() {
+     size_t length = 0;
+     // First, get the length of the stored string
+     if (global_preferences->get_blob_length(this->filter_string_pref_, &length)) {
+         if (length > 0) {
+             // Allocate buffer for the string data
+             std::vector<uint8_t> buffer(length);
+             // Load the string data
+             if (global_preferences->get_blob(this->filter_string_pref_, buffer.data(), length)) {
+                 // Convert to string
+                 this->filter_string = std::string(reinterpret_cast<char*>(buffer.data()), length);
+             }
+         }
+     }
+ }
 
 void SyslogComponent::set_server_ip(const std::string &address) {
     if (this->settings_.address != address) {
@@ -207,80 +209,19 @@ void SyslogComponent::set_server_ip(const std::string &address) {
     }
 }
 
-void SyslogComponent::save_filter_string_to_preferences() {
-    // Save filter string to preferences
-    ESPPreferenceObject pref = global_preferences->make_preference<std::string>(FILTER_PREF_KEY);
-    if (!pref.save(&this->filter_string)) {
-        ESP_LOGW("syslog", "Failed to save filter string to flash");
-    } else {
-        char buffer[150];
-        snprintf(buffer, sizeof(buffer), "Saved filter string to flash: '%s'", this->filter_string.c_str());
-        ESP_LOGD("syslog", "%s", buffer);
-    }
-}
-
-void SyslogComponent::load_filter_string() {
-    // We'll use a simpler approach - storing each filter tag individually
-    // in the flash as a comma-separated list isn't very efficient anyway
-    this->filters_initialized_ = true;
-    
-    // Attempt to load filters from the yaml/config instead
-    if (!this->filter_string.empty() && this->tag_filters.empty()) {
-        // Parse the filter string
-        size_t start = 0;
-        size_t end = 0;
-        
-        while ((end = this->filter_string.find(',', start)) != std::string::npos) {
-            std::string item = this->filter_string.substr(start, end - start);
-            item = trim(item);
-            
-            if (!item.empty()) {
-                this->tag_filters.insert(item);
-            }
-            
-            start = end + 1;
-        }
-        
-        std::string item = this->filter_string.substr(start);
-        item = trim(item);
-        
-        if (!item.empty()) {
-            this->tag_filters.insert(item);
-        }
-    }
-    
-    // Update text sensor if available
-    if (this->filter_string_text_ != nullptr) {
-        this->filter_string_text_->publish_state(this->filter_string);
-    }
-}
-
-void SyslogComponent::save_filter_string() {
-    // We're not actually persisting to flash in this version
-    // Just make sure our filter_string is in sync with our tag_filters
-    if (this->tag_filters.empty()) {
-        this->filter_string = "";
-    } else {
-        // Build a new filter string from the current filters
-        std::string new_filter_string;
-        bool first = true;
-        
-        for (const auto &tag : this->tag_filters) {
-            if (!first) {
-                new_filter_string += ",";
-            }
-            new_filter_string += tag;
-            first = false;
-        }
-        
-        this->filter_string = new_filter_string;
-    }
-    
-    // Update text sensor if available
-    if (this->filter_string_text_ != nullptr) {
-        this->filter_string_text_->publish_state(this->filter_string);
-    }
-}
+ void SyslogComponent::() {
+     if (this->filter_string.empty()) {
+         // If empty, just remove the preference entry
+         global_preferences->remove(this->filter_string_pref_);
+     } else {
+         // Save the string data as bytes
+         global_preferences->put_blob(
+             this->filter_string_pref_,
+             reinterpret_cast<const uint8_t*>(this->filter_string.c_str()),
+             this->filter_string.length()
+         );
+     }
+ }
 
 void SyslogComponent::set_server_port(uint16_t port) {
     if (this->settings_.port != port) {
@@ -366,9 +307,6 @@ void SyslogComponent::set_globally_enabled(bool en) {
 void SyslogComponent::add_filter(const std::string &tag) {
     this->tag_filters.insert(tag);
     
-    // Update filter_string to match tag_filters
-    this->save_filter_string();
-    
     // Save to preferences
     this->save_filter_string_to_preferences();
     
@@ -379,9 +317,6 @@ void SyslogComponent::add_filter(const std::string &tag) {
 
 void SyslogComponent::remove_filter(const std::string &tag) {
     this->tag_filters.erase(tag);
-    
-    // Update filter_string to match tag_filters
-    this->save_filter_string();
     
     // Save to preferences
     this->save_filter_string_to_preferences();
@@ -395,8 +330,8 @@ void SyslogComponent::clear_filters() {
     this->tag_filters.clear();
     this->filter_string = "";
     
-    // Save the empty string to preferences
-    this->save_filter_string_to_preferences();
+     // Save empty string to preferences
+     this->();
     
     // Update text sensor if available
     if (this->filter_string_text_ != nullptr) {
@@ -409,7 +344,10 @@ void SyslogComponent::clear_filters() {
 void SyslogComponent::set_filter_string(const std::string &filter_string) {
     if (this->filter_string != filter_string) {
         this->filter_string = filter_string;
-        
+ 
+         // Save to preferences
+         this->();
+                 
         // Clear existing filters
         this->tag_filters.clear();
         
@@ -439,9 +377,6 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
                 this->tag_filters.insert(item);
             }
         }
-        
-        // Save to preferences
-        this->save_filter_string_to_preferences();
         
         // Update text sensor if available
         if (this->filter_string_text_ != nullptr) {
