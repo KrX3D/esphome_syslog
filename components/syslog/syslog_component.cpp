@@ -332,19 +332,27 @@ std::string SyslogComponent::extract_component_name(const std::string &tag) {
 bool SyslogComponent::should_send_log(const std::string &tag) {
     // Extract component name from tag (before the colon)
     std::string component = extract_component_name(tag);
-    
-    // If no filters are set, always allow
-    if (this->tag_filters.empty()) {
+
+    // Special case for Include mode: if filter is empty, include nothing.
+    if (this->filter_include_mode && this->tag_filters.empty()) {
+        return false;
+    }
+    // Special case for Exclude mode: if filter string is "ALL", exclude all logs.
+    if (!this->filter_include_mode && this->filter_string == "ALL") {
+        return false;
+    }
+    // For Exclude mode: if no filters are set, allow all logs.
+    if (!this->filter_include_mode && this->tag_filters.empty()) {
         return true;
     }
-    
+
     bool has_component = this->has_filter(component);
-    
-    // In include mode, only send logs from components in the filter list
-    // In exclude mode, send logs from all components EXCEPT those in the filter list
+
+    // In Include mode: only send logs for components in the filter list.
     if (this->filter_include_mode) {
         return has_component;
     } else {
+        // In Exclude mode: send logs for components NOT in the filter list.
         return !has_component;
     }
 }
