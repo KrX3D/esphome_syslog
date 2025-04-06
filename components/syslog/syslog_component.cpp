@@ -21,7 +21,6 @@ namespace esphome {
 namespace syslog {
 
 static const char *TAG = "syslog";
-static const char *FILTER_PREF_KEY = "syslog_filters";  // Preference key for filters
 
 // https://github.com/arcao/Syslog/blob/master/src/Syslog.h#L37-44
 // https://github.com/esphome/esphome/blob/5c86f332b269fd3e4bffcbdf3359a021419effdd/esphome/core/log.h#L19-26
@@ -35,21 +34,6 @@ SyslogComponent::SyslogComponent() {
     this->enable_direct_logs = true;    // New: Enable direct logging by default
     this->globally_enabled = true;      // New: Enable component by default
     this->filter_string = "";           // Initialize empty filter string
-     
-     // Create a unique preference key using the fnv1 hash of "syslog_filter"
-     this->filter_string_pref_ = fnv1_hash("syslog_filter");
-     
-     // Try to load saved filter string
-     this->load_filter_string_from_preferences();
-}
-
-// Helper function to trim whitespace
-std::string trim(const std::string &str) {
-    size_t first = str.find_first_not_of(" \t\r\n");
-    if (first == std::string::npos)
-        return "";
-    size_t last = str.find_last_not_of(" \t\r\n");
-    return str.substr(first, (last - first + 1));
 }
 
 void SyslogComponent::setup() {
@@ -58,35 +42,6 @@ void SyslogComponent::setup() {
         this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", "Syslog component is disabled, skipping setup");
         return;
     }
-     // Load filters from saved filter string (if we have a string but no filters yet)
-     if (!this->filter_string.empty() && this->tag_filters.empty()) {
-         // Parse the filter string
-         size_t start = 0;
-         size_t end = 0;
-         
-         while ((end = this->filter_string.find(',', start)) != std::string::npos) {
-             std::string item = this->filter_string.substr(start, end - start);
-             item = trim(item);
-             
-             if (!item.empty()) {
-                 this->tag_filters.insert(item);
-             }
-             
-             start = end + 1;
-         }
-         
-         std::string item = this->filter_string.substr(start);
-         item = trim(item);
-         
-         if (!item.empty()) {
-             this->tag_filters.insert(item);
-         }
-         
-         // Update text sensor if available
-         if (this->filter_string_text_ != nullptr) {
-             this->filter_string_text_->publish_state(this->filter_string);
-         }
-     }
 
     // Close existing socket if it exists
     if (this->socket_) {
@@ -168,22 +123,6 @@ void SyslogComponent::setup() {
 void SyslogComponent::loop() {
 }
 
- void SyslogComponent::load_filter_string_from_preferences() {
-     size_t length = 0;
-     // First, get the length of the stored string
-     if (global_preferences->get_blob_length(this->filter_string_pref_, &length)) {
-         if (length > 0) {
-             // Allocate buffer for the string data
-             std::vector<uint8_t> buffer(length);
-             // Load the string data
-             if (global_preferences->get_blob(this->filter_string_pref_, buffer.data(), length)) {
-                 // Convert to string
-                 this->filter_string = std::string(reinterpret_cast<char*>(buffer.data()), length);
-             }
-         }
-     }
- }
-
 void SyslogComponent::set_server_ip(const std::string &address) {
     if (this->settings_.address != address) {
         // Store the new address
@@ -208,20 +147,6 @@ void SyslogComponent::set_server_ip(const std::string &address) {
         }
     }
 }
-
- void SyslogComponent::() {
-     if (this->filter_string.empty()) {
-         // If empty, just remove the preference entry
-         global_preferences->remove(this->filter_string_pref_);
-     } else {
-         // Save the string data as bytes
-         global_preferences->put_blob(
-             this->filter_string_pref_,
-             reinterpret_cast<const uint8_t*>(this->filter_string.c_str()),
-             this->filter_string.length()
-         );
-     }
- }
 
 void SyslogComponent::set_server_port(uint16_t port) {
     if (this->settings_.port != port) {
@@ -306,32 +231,21 @@ void SyslogComponent::set_globally_enabled(bool en) {
 
 void SyslogComponent::add_filter(const std::string &tag) {
     this->tag_filters.insert(tag);
-    
-    // Save to preferences
-    this->save_filter_string_to_preferences();
-    
     char buffer[150];
     snprintf(buffer, sizeof(buffer), "Added filter for tag: '%s'", tag.c_str());
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+    this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer));
 }
 
 void SyslogComponent::remove_filter(const std::string &tag) {
     this->tag_filters.erase(tag);
-    
-    // Save to preferences
-    this->save_filter_string_to_preferences();
-    
     char buffer[150];
     snprintf(buffer, sizeof(buffer), "Removed filter for tag: '%s'", tag.c_str());
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+    this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer));
 }
 
 void SyslogComponent::clear_filters() {
     this->tag_filters.clear();
     this->filter_string = "";
-    
-     // Save empty string to preferences
-     this->();
     
     // Update text sensor if available
     if (this->filter_string_text_ != nullptr) {
@@ -341,13 +255,19 @@ void SyslogComponent::clear_filters() {
     this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "All filters cleared");
 }
 
+// Helper function to trim whitespace
+std::string trim(const std::string &str) {
+    size_t first = str.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return "";
+    size_t last = str.find_last_not_of(" \t\r\n");
+    return str.substr(first, (last - first + 1));
+}
+
 void SyslogComponent::set_filter_string(const std::string &filter_string) {
     if (this->filter_string != filter_string) {
         this->filter_string = filter_string;
- 
-         // Save to preferences
-         this->();
-                 
+        
         // Clear existing filters
         this->tag_filters.clear();
         
@@ -362,7 +282,7 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
                 item = trim(item);
                 
                 if (!item.empty()) {
-                    this->tag_filters.insert(item);
+                    this->add_filter(item);
                 }
                 
                 start = end + 1;
@@ -374,7 +294,7 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
             item = trim(item);
             
             if (!item.empty()) {
-                this->tag_filters.insert(item);
+                this->add_filter(item);
             }
         }
         
