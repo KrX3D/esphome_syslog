@@ -21,6 +21,7 @@ namespace esphome {
 namespace syslog {
 
 static const char *TAG = "syslog";
+static const char *FILTER_PREF_KEY = "syslog_filters";  // Preference key for filters
 
 // https://github.com/arcao/Syslog/blob/master/src/Syslog.h#L37-44
 // https://github.com/esphome/esphome/blob/5c86f332b269fd3e4bffcbdf3359a021419effdd/esphome/core/log.h#L19-26
@@ -135,23 +136,21 @@ void SyslogComponent::setup() {
 void SyslogComponent::loop() {
 }
 
-// Add a new method to load filter string from preferences
 void SyslogComponent::load_filter_string_from_preferences() {
     // Load filter string from preferences
-    ESPPreferenceObject pref = global_preferences->make_preference<std::string>(this->get_object_id_hash() + 1);
-    pref.load(&this->filter_string);
-    
-    // Log the loaded filter string
-    if (!this->filter_string.empty()) {
+    ESPPreferenceObject pref = global_preferences->make_preference<std::string>(FILTER_PREF_KEY);
+    if (!pref.load(&this->filter_string)) {
+        ESP_LOGD("syslog", "No saved filter string found");
+    } else {
         char buffer[150];
         snprintf(buffer, sizeof(buffer), "Loaded filter string from flash: '%s'", this->filter_string.c_str());
         ESP_LOGD("syslog", "%s", buffer);
     }
     
     // Parse the filter string to populate tag_filters
+    this->tag_filters.clear();
+    
     if (!this->filter_string.empty()) {
-        this->tag_filters.clear();
-        
         size_t start = 0;
         size_t end = 0;
         
@@ -208,10 +207,9 @@ void SyslogComponent::set_server_ip(const std::string &address) {
     }
 }
 
-// Add a new method to save filter string to preferences
 void SyslogComponent::save_filter_string_to_preferences() {
     // Save filter string to preferences
-    ESPPreferenceObject pref = global_preferences->make_preference<std::string>(this->get_object_id_hash() + 1);
+    ESPPreferenceObject pref = global_preferences->make_preference<std::string>(FILTER_PREF_KEY);
     if (!pref.save(&this->filter_string)) {
         ESP_LOGW("syslog", "Failed to save filter string to flash");
     } else {
