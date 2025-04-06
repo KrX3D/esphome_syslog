@@ -26,6 +26,7 @@ CONF_INCLUDE = "include"
 CONF_EXCLUDE = "exclude"
 CONF_FILTERS = "filters"
 CONF_FILTER_STRING = "filter_string"  # New parameter for comma-separated filters
+CONF_FILTER_TEXT = "filter_text"      # New optional parameter to register a text sensor
 
 DEPENDENCIES = ['logger','network','socket']
 
@@ -75,6 +76,7 @@ CONFIG_SCHEMA = cv.All(
         cv.Optional(CONF_FILTER_MODE, default="exclude"): validate_filter_mode,
         cv.Optional(CONF_FILTERS, default=[]): cv.ensure_list(cv.string),
         cv.Optional(CONF_FILTER_STRING, default=""): cv.string,  # New parameter for comma-separated filters
+        cv.Optional(CONF_FILTER_TEXT): cv.use_id(text.Text),     # New optional text sensor parameter
     })
 )
 
@@ -118,6 +120,11 @@ def to_code(config):
     # The log level is already uppercase from our validator
     cg.add(var.set_min_log_level(logger.LOG_LEVELS[config[CONF_MIN_LEVEL]]))
     cg.add(var.set_filter_mode(config[CONF_FILTER_MODE]))
+    
+    # Register the text sensor for filter string updates if provided
+    if CONF_FILTER_TEXT in config:
+        text_obj = yield cg.get_variable(config[CONF_FILTER_TEXT])
+        cg.add(var.register_filter_string_text(text_obj))
     
     # Parse filter string and add filters
     if config[CONF_FILTER_STRING]:
