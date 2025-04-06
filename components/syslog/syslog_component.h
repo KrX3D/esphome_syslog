@@ -104,6 +104,8 @@ class SyslogComponent : public Component {
         struct sockaddr_storage server;
         socklen_t server_socklen;
         uint32_t filter_string_pref_;
+        void load_filter_string_from_preferences();
+        void save_filter_string_to_preferences();
 };
 
 // Custom action to log a message
