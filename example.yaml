@@ -93,7 +93,6 @@ text:
     optimistic: true
     restore_value: true
     mode: text
-    #initial_value: ""   # Set an initial empty value
     on_value:
       then:
         - syslog.set_filter_string:
