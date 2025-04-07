@@ -27,6 +27,8 @@ CONF_EXCLUDE = "exclude"
 CONF_FILTERS = "filters"
 CONF_FILTER_STRING = "filter_string"  # New parameter for comma-separated filters
 CONF_FILTER_TEXT = "filter_text"      # New optional parameter to register a text sensor
+CONF_DIRECT_LOG_PREFIX = "direct_log_prefix"  # New parameter for direct log prefix
+CONF_LOGGER_LOG_PREFIX = "logger_log_prefix"  # New parameter for logger log prefix
 
 DEPENDENCIES = ['logger','network','socket']
 
