@@ -14,6 +14,12 @@
 namespace esphome {
 namespace syslog {
 
+enum class LogSource {
+    LOGGER,      // Messages from the ESPHome logger system
+    DIRECT,      // Messages from direct API calls (syslog.log action or lambda)
+    INTERNAL     // Messages from the syslog component itself
+};
+
 struct SYSLOGSettings {
     std::string address;
     uint16_t port;
@@ -58,6 +64,13 @@ class SyslogComponent : public Component {
         bool get_globally_enabled() const { return this->globally_enabled; }
         bool is_setup() const { return this->socket_ != nullptr; }
 
+        // Source detection related
+        void set_direct_log_prefix(const std::string &prefix) { this->direct_log_prefix = prefix; }
+        const std::string &get_direct_log_prefix() const { return this->direct_log_prefix; }
+        
+        void set_logger_log_prefix(const std::string &prefix) { this->logger_log_prefix = prefix; }
+        const std::string &get_logger_log_prefix() const { return this->logger_log_prefix; }
+
         // Filter management
         void set_filter_mode(bool include_mode) { this->filter_include_mode = include_mode; }
         bool get_filter_mode() const { return this->filter_include_mode; }
@@ -81,7 +94,8 @@ class SyslogComponent : public Component {
             }
         }
         
-        void log(uint8_t level, const std::string &tag, const std::string &payload);
+        void log(uint8_t level, const std::string &tag, const std::string &payload, LogSource source = LogSource::DIRECT);
+        LogSource get_message_source(const std::string &tag) const;
         
         // Helper method to extract component name from the tag
         std::string extract_component_name(const std::string &tag);
@@ -102,6 +116,10 @@ class SyslogComponent : public Component {
         std::unique_ptr<socket::Socket> socket_ = nullptr;
         struct sockaddr_storage server;
         socklen_t server_socklen;
+        
+        // New: Prefix settings for different log sources
+        std::string direct_log_prefix;  // Prefix for direct logs (from actions/lambda)
+        std::string logger_log_prefix;  // Prefix for logger messages
 };
 
 // Custom action to log a message
@@ -113,7 +131,7 @@ template<typename... Ts> class SyslogLogAction : public Action<Ts...> {
         TEMPLATABLE_VALUE(std::string, payload)
 
         void play(Ts... x) override {
-            this->parent_->log(this->level_.value(x...), this->tag_.value(x...), this->payload_.value(x...));
+            this->parent_->log(this->level_.value(x...), this->tag_.value(x...), this->payload_.value(x...), LogSource::DIRECT);
         }
 
     protected:
