@@ -15,26 +15,30 @@ from esphome.const import (
 )
 from esphome.components import logger, text
 
+# Configuration constants
 CONF_STRIP_COLORS = "strip_colors"
 CONF_ENABLE_LOGGER_MESSAGES = "enable_logger"
-CONF_ENABLE_DIRECT_LOGS = "enable_direct_logs"  # New option
-CONF_GLOBALLY_ENABLED = "globally_enabled"      # New option
+CONF_ENABLE_DIRECT_LOGS = "enable_direct_logs"
+CONF_GLOBALLY_ENABLED = "globally_enabled"
 CONF_MIN_LEVEL = "min_level"
 CONF_SYSLOG_ID = "syslog_id"
 CONF_FILTER_MODE = "filter_mode"
 CONF_INCLUDE = "include"
 CONF_EXCLUDE = "exclude"
 CONF_FILTERS = "filters"
-CONF_FILTER_STRING = "filter_string"  # New parameter for comma-separated filters
-CONF_FILTER_TEXT = "filter_text"      # New optional parameter to register a text sensor
-CONF_DIRECT_LOG_PREFIX = "direct_log_prefix"  # New parameter for direct log prefix
-CONF_LOGGER_LOG_PREFIX = "logger_log_prefix"  # New parameter for logger log prefix
+CONF_FILTER_STRING = "filter_string"
+CONF_FILTER_TEXT = "filter_text"
+CONF_DIRECT_LOG_PREFIX = "direct_log_prefix"
+CONF_LOGGER_LOG_PREFIX = "logger_log_prefix"
 
-DEPENDENCIES = ['logger','network','socket']
+# Component dependencies
+DEPENDENCIES = ['logger', 'network', 'socket']
 
+# Namespace setup
 debug_ns = cg.esphome_ns.namespace('debug')
 syslog_ns = cg.esphome_ns.namespace('syslog')
 
+# Component class definitions
 SyslogComponent = syslog_ns.class_('SyslogComponent', cg.Component)
 SyslogLogAction = syslog_ns.class_('SyslogLogAction', automation.Action)
 
