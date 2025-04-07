@@ -35,12 +35,14 @@ SyslogComponent::SyslogComponent() {
     this->enable_direct_logs = true;    // New: Enable direct logging by default
     this->globally_enabled = true;      // New: Enable component by default
     this->filter_string = "";           // Initialize empty filter string
+    this->direct_log_prefix = "";       // Initialize empty direct log prefix
+    this->logger_log_prefix = "";       // Initialize empty logger log prefix
 }
 
 void SyslogComponent::setup() {
     // If component is globally disabled, don't set up the socket
     if (!this->globally_enabled) {
-        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", "Syslog component is disabled, skipping setup");
+        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", "Syslog component is disabled, skipping setup", LogSource::INTERNAL);
         return;
     }
 
@@ -83,22 +85,22 @@ void SyslogComponent::setup() {
     if (!this->server_socklen) {
         char buffer[150];
         snprintf(buffer, sizeof(buffer), "Failed to parse server IP address '%s'", this->settings_.address.c_str());
-        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer));
+        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer), LogSource::INTERNAL);
         this->mark_failed();
         return;
     }
     this->socket_ = socket::socket(this->server.ss_family, SOCK_DGRAM, IPPROTO_UDP);
     if (!this->socket_) {
-        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", "Failed to create UDP socket");
+        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", "Failed to create UDP socket", LogSource::INTERNAL);
         this->mark_failed();
         return;
     }
  
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "------------------------ Syslog started ------------------------");
+    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "------------------------ Syslog started ------------------------", LogSource::INTERNAL);
     char buffer[100];
     snprintf(buffer, sizeof(buffer), "Started with server: %s -> %d",
              this->settings_.address.c_str(), this->settings_.port);
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer), LogSource::INTERNAL);
     
     #ifdef USE_LOGGER
     if (logger::global_logger != nullptr) {
@@ -112,9 +114,9 @@ void SyslogComponent::setup() {
             
             if(this->strip_colors) { //Strips the "033[0;xxx" at the beginning and the "#033[0m" at the end of log messages
                 std::string org_msg(message);
-                this->log(level, tag, org_msg.substr(7, org_msg.size() -7 -4));
+                this->log(level, tag, org_msg.substr(7, org_msg.size() -7 -4), LogSource::LOGGER);
             } else {
-                this->log(level, tag, message);
+                this->log(level, tag, message, LogSource::LOGGER);
             }
         });
     }
@@ -144,7 +146,7 @@ void SyslogComponent::set_server_ip(const std::string &address) {
             char buffer[150];
             snprintf(buffer, sizeof(buffer), "Syslog server IP updated: %s -> %s",
                     old_address.c_str(), address.c_str());
-            this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+            this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer), LogSource::INTERNAL);
         }
     }
 }
@@ -169,7 +171,7 @@ void SyslogComponent::set_server_port(uint16_t port) {
             char buffer[150];
             snprintf(buffer, sizeof(buffer), "Syslog server port updated: %d -> %d",
                     old_port, port);
-            this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+            this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer), LogSource::INTERNAL);
         }
     }
 }
@@ -180,7 +182,7 @@ void SyslogComponent::set_enable_logger_messages(bool en) {
         snprintf(buffer, sizeof(buffer), "Logger messages: %s -> %s",
                  this->enable_logger ? "enabled" : "disabled",
                  en ? "enabled" : "disabled");
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer), LogSource::INTERNAL);
         this->enable_logger = en;
     }
 }
@@ -191,7 +193,7 @@ void SyslogComponent::set_strip_colors(bool strip_colors) {
         snprintf(buffer, sizeof(buffer), "Strip colors: %s -> %s",
                  this->strip_colors ? "enabled" : "disabled",
                  strip_colors ? "enabled" : "disabled");
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer), LogSource::INTERNAL);
         this->strip_colors = strip_colors;
     }
 }
@@ -202,7 +204,7 @@ void SyslogComponent::set_enable_direct_logs(bool en) {
         snprintf(buffer, sizeof(buffer), "Direct logging: %s -> %s",
                  this->enable_direct_logs ? "enabled" : "disabled",
                  en ? "enabled" : "disabled");
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer), LogSource::INTERNAL);
         this->enable_direct_logs = en;
     }
 }
@@ -214,7 +216,7 @@ void SyslogComponent::set_globally_enabled(bool en) {
         snprintf(buffer, sizeof(buffer), "Syslog component: %s -> %s",
                  this->globally_enabled ? "enabled" : "disabled",
                  en ? "enabled" : "disabled");
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer), LogSource::INTERNAL);
         
         this->globally_enabled = en;
         
@@ -234,14 +236,14 @@ void SyslogComponent::add_filter(const std::string &tag) {
     this->tag_filters.insert(tag);
     char buffer[150];
     snprintf(buffer, sizeof(buffer), "Added filter for tag: '%s'", tag.c_str());
-    this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer));
+    this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer), LogSource::INTERNAL);
 }
 
 void SyslogComponent::remove_filter(const std::string &tag) {
     this->tag_filters.erase(tag);
     char buffer[150];
     snprintf(buffer, sizeof(buffer), "Removed filter for tag: '%s'", tag.c_str());
-    this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer));
+    this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", std::string(buffer), LogSource::INTERNAL);
 }
 
 void SyslogComponent::clear_filters() {
@@ -253,7 +255,7 @@ void SyslogComponent::clear_filters() {
         this->filter_string_text_->publish_state("");
     }
     
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "All filters cleared");
+    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "All filters cleared", LogSource::INTERNAL);
 }
 
 // Helper function to trim whitespace
@@ -306,7 +308,7 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
         
         char buffer[150];
         snprintf(buffer, sizeof(buffer), "Filter string updated: '%s'", filter_string.c_str());
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer));
+        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", std::string(buffer), LogSource::INTERNAL);
     }
 }
 
@@ -365,14 +367,36 @@ bool SyslogComponent::should_send_log(const std::string &tag) {
     }
 }
 
-void SyslogComponent::log(uint8_t level, const std::string &tag, const std::string &payload) {
-     // Check if component is enabled and if direct logs are allowed
-     if (!this->globally_enabled || this->is_failed()) {
-         return;
-     }
+LogSource SyslogComponent::get_message_source(const std::string &tag) const {
+    // Check if tag starts with direct log prefix (if set)
+    if (!this->direct_log_prefix.empty() && 
+        tag.substr(0, this->direct_log_prefix.length()) == this->direct_log_prefix) {
+        return LogSource::DIRECT;
+    }
+    
+    // Check if tag starts with logger log prefix (if set)
+    if (!this->logger_log_prefix.empty() && 
+        tag.substr(0, this->logger_log_prefix.length()) == this->logger_log_prefix) {
+        return LogSource::LOGGER;
+    }
+    
+    // If tag is "syslog", it's an internal message
+    if (tag == "syslog") {
+        return LogSource::INTERNAL;
+    }
+    
+    // Otherwise we don't know the source
+    return LogSource::DIRECT; // Default in case we can't determine
+}
+
+void SyslogComponent::log(uint8_t level, const std::string &tag, const std::string &payload, LogSource source) {
+    // Check if component is enabled
+    if (!this->globally_enabled || this->is_failed()) {
+        return;
+    }
      
-     // For direct log calls, check the enable_direct_logs flag
-     if (!this->enable_direct_logs && tag != "syslog") {
+    // For direct log calls, check the enable_direct_logs flag
+    if (source == LogSource::DIRECT && !this->enable_direct_logs && tag != "syslog") {
         return;
     }
 
@@ -383,12 +407,28 @@ void SyslogComponent::log(uint8_t level, const std::string &tag, const std::stri
         return;
     }
     
+    // Apply prefixes based on source if configured
+    std::string modified_tag = tag;
+    
+    // Add source prefix if configured
+    if (source == LogSource::DIRECT && !this->direct_log_prefix.empty()) {
+        // Only add the prefix if it's not already there (avoids duplication on log actions)
+        if (modified_tag.substr(0, this->direct_log_prefix.length()) != this->direct_log_prefix) {
+            modified_tag = this->direct_log_prefix + modified_tag;
+        }
+    } else if (source == LogSource::LOGGER && !this->logger_log_prefix.empty()) {
+        // Only add the prefix if it's not already there
+        if (modified_tag.substr(0, this->logger_log_prefix.length()) != this->logger_log_prefix) {
+            modified_tag = this->logger_log_prefix + modified_tag;
+        }
+    }
+    
     int pri = esphome_to_syslog_log_levels[level];
     std::string buf = str_sprintf("<%d>1 - %s %s - - - \xEF\xBB\xBF%s",
-                                  pri, this->settings_.client_id.c_str(),
-                                  tag.c_str(), payload.c_str());
+                                 pri, this->settings_.client_id.c_str(),
+                                 modified_tag.c_str(), payload.c_str());
     if (this->socket_->sendto(buf.c_str(), buf.length(), 0, (struct sockaddr *)&this->server, this->server_socklen) < 0) {
-        ESP_LOGW(TAG, "Tried to send \"%s\"@\"%s\" with level %d but failed for an unknown reason", tag.c_str(), payload.c_str(), level);
+        ESP_LOGW(TAG, "Tried to send \"%s\"@\"%s\" with level %d but failed for an unknown reason", modified_tag.c_str(), payload.c_str(), level);
     }
 }
 
