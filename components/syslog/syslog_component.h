@@ -14,21 +14,28 @@
 namespace esphome {
 namespace syslog {
 
+/**
+ * @brief Defines the source of a log message
+ */
 enum class LogSource {
     LOGGER,      // Messages from the ESPHome logger system
     DIRECT,      // Messages from direct API calls (syslog.log action or lambda)
     INTERNAL     // Messages from the syslog component itself
 };
 
-struct SYSLOGSettings {
-    std::string address;
-    uint16_t port;
-    std::string client_id;
-    int min_log_level;
+/**
+ * @brief Settings structure for Syslog configuration
+ */
+struct SyslogSettings {
+    std::string address;      // IP address of the syslog server
+    uint16_t port;            // Port of the syslog server
+    std::string client_id;    // Client identifier to include in syslog messages
+    int min_log_level;        // Minimum log level to forward
 };
 
-//class UDP;
-
+/**
+ * @brief Component for sending logs to a Syslog server
+ */
 class SyslogComponent : public Component {
     public:
         SyslogComponent();
@@ -56,7 +63,7 @@ class SyslogComponent : public Component {
         void set_strip_colors(bool strip_colors);
         bool get_strip_colors() const { return this->strip_colors; }
 
-        // New controls
+        // Component state controls
         void set_enable_direct_logs(bool en);
         bool get_enable_direct_logs() const { return this->enable_direct_logs; }
         
@@ -64,7 +71,7 @@ class SyslogComponent : public Component {
         bool get_globally_enabled() const { return this->globally_enabled; }
         bool is_setup() const { return this->socket_ != nullptr; }
 
-        // Source detection related
+        // Log source prefixing
         void set_direct_log_prefix(const std::string &prefix) { this->direct_log_prefix = prefix; }
         const std::string &get_direct_log_prefix() const { return this->direct_log_prefix; }
         
@@ -81,7 +88,7 @@ class SyslogComponent : public Component {
         bool has_filter(const std::string &tag) const;
         std::vector<std::string> get_filters() const;
         
-        // New filter string methods
+        // Filter string methods (comma-separated list)
         void set_filter_string(const std::string &filter_string);
         std::string get_filter_string() const { return this->filter_string; }
         
@@ -94,6 +101,7 @@ class SyslogComponent : public Component {
             }
         }
         
+        // Main logging function
         void log(uint8_t level, const std::string &tag, const std::string &payload, LogSource source = LogSource::DIRECT);
         LogSource get_message_source(const std::string &tag) const;
         
@@ -104,25 +112,27 @@ class SyslogComponent : public Component {
         bool should_send_log(const std::string &tag);
 
     protected:
-        bool strip_colors;
-        bool enable_logger;
-        bool enable_direct_logs;  // New: Controls whether direct log() calls work
-        bool globally_enabled;    // New: Global on/off switch for the component
-        bool filter_include_mode; // true = include only these tags, false = exclude these tags
-        std::set<std::string> tag_filters;
-        std::string filter_string;  // Store the original filter string
-        text::Text *filter_string_text_ = nullptr;
-        SYSLOGSettings settings_;
-        std::unique_ptr<socket::Socket> socket_ = nullptr;
-        struct sockaddr_storage server;
-        socklen_t server_socklen;
+        bool strip_colors;                    // Whether to strip color codes from logger messages
+        bool enable_logger;                   // Enable capturing from ESPHome logger
+        bool enable_direct_logs;              // Enable direct API logging calls
+        bool globally_enabled;                // Global on/off switch for the component
+        bool filter_include_mode;             // Filter mode: true=include, false=exclude
+        std::set<std::string> tag_filters;    // Set of tags to filter
+        std::string filter_string;            // Original comma-separated filter string
+        text::Text *filter_string_text_ = nullptr;  // Text sensor for filter string
+        SyslogSettings settings_;             // Connection settings
+        std::unique_ptr<socket::Socket> socket_ = nullptr;  // UDP socket
+        struct sockaddr_storage server;       // Server address
+        socklen_t server_socklen;             // Server address length
         
-        // New: Prefix settings for different log sources
-        std::string direct_log_prefix;  // Prefix for direct logs (from actions/lambda)
-        std::string logger_log_prefix;  // Prefix for logger messages
+        // Prefix settings for different log sources
+        std::string direct_log_prefix;        // Prefix for direct logs
+        std::string logger_log_prefix;        // Prefix for logger messages
 };
 
-// Custom action to log a message
+/**
+ * @brief Action to send a log message
+ */
 template<typename... Ts> class SyslogLogAction : public Action<Ts...> {
     public:
         SyslogLogAction(SyslogComponent *parent) : parent_(parent) {}
@@ -138,7 +148,9 @@ template<typename... Ts> class SyslogLogAction : public Action<Ts...> {
         SyslogComponent *parent_;
 };
 
-// Custom action to add a tag filter
+/**
+ * @brief Action to add a tag filter
+ */
 template<typename... Ts> class SyslogAddFilterAction : public Action<Ts...> {
 public:
     SyslogAddFilterAction(SyslogComponent *parent) : parent_(parent) {}
@@ -150,7 +162,9 @@ protected:
     SyslogComponent *parent_;
 };
 
-// Custom action to remove a tag filter
+/**
+ * @brief Action to remove a tag filter
+ */
 template<typename... Ts> class SyslogRemoveFilterAction : public Action<Ts...> {
 public:
     SyslogRemoveFilterAction(SyslogComponent *parent) : parent_(parent) {}
@@ -162,7 +176,9 @@ protected:
     SyslogComponent *parent_;
 };
 
-// Custom action to clear all filters
+/**
+ * @brief Action to clear all filters
+ */
 template<typename... Ts> class SyslogClearFiltersAction : public Action<Ts...> {
 public:
     SyslogClearFiltersAction(SyslogComponent *parent) : parent_(parent) {}
@@ -173,7 +189,9 @@ protected:
     SyslogComponent *parent_;
 };
 
-// Custom action to set filter string
+/**
+ * @brief Action to set filter string
+ */
 template<typename... Ts> class SyslogSetFilterStringAction : public Action<Ts...> {
 public:
     SyslogSetFilterStringAction(SyslogComponent *parent) : parent_(parent) {}
