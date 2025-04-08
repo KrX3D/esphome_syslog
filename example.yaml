@@ -201,8 +201,8 @@ syslog:
     - mqtt
     - api
   filter_text: syslog_filter_text
-  direct_log_prefix: "direct:"
-  logger_log_prefix: "logger:"
+  direct_log_prefix: "direct" # Line will be output as "direct: "
+  logger_log_prefix: "logger" # Line will be output as "logger: "
 
 # Test buttons for various syslog features
 button:
