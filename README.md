@@ -66,6 +66,39 @@ With this minimal configuration, the component will **broadcast logs to everyone
 | `direct_log_prefix`   | string    | ""                | Prefix added to direct log messages                               |
 | `logger_log_prefix`   | string    | ""                | Prefix added to logger messages                                   |
 
+## Configuration Options
+
+### Logging Configuration
+
+The following options allow you to customize how log messages are displayed:
+
+- `client_id`: String that sets the device name used in Syslog messages. This also controls the name of the log file created by the Syslog server.
+  - Example: When set to `"ESP32 C3"`, logs will show this identifier and be saved to `syslog-ESP32_C3.log`
+
+- `direct_log_prefix`: String that is added as a prefix to direct log messages.
+  - Example: When set to `"direct"`, direct log messages will be prefixed with this text
+
+- `logger_log_prefix`: String that is added as a prefix to logger messages.
+  - Example: When set to `"logger"`, logger messages will be prefixed with this text
+
+### Example Log Output
+
+When configured with:
+```yaml
+client_id: "ESP32_C3"
+direct_log_prefix: "direct"
+logger_log_prefix: "logger"
+```
+
+The logs will appear as:
+
+```
+Apr  8 18:30:11 ESP32_C3 direct:[[Boot]] - => Device booted
+Apr  8 18:30:11 ESP32_C3 logger:[sensor] - ﻿[D][sensor:093]: 'WiFi Signal': Sending state -64.00000 dBm with 0 decimals of accuracy
+```
+
+Note that the `client_id` appears after the timestamp, and the prefixes are added to the beginning of the actual log message content.
+
 ## Advanced Configuration Examples
 
 ### Server Configuration with Port and Client ID
