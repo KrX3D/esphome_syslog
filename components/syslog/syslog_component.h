@@ -1,3 +1,5 @@
+// components/syslog/syslog_component.h
+
 #pragma once
 #ifndef SYSLOG_COMPONENT_H_0504CB6C_15D8_4AB4_A04C_8AF9063B737F
 #define SYSLOG_COMPONENT_H_0504CB6C_15D8_4AB4_A04C_8AF9063B737F
@@ -52,7 +54,7 @@ class SyslogComponent : public Component {
         void set_server_port(uint16_t port);
         uint16_t get_server_port() const { return this->settings_.port; }
         
-        void set_client_id(const std::string &client_id) { this->settings_.client_id = client_id; }
+        void set_client_id(const std::string &client_id);
         
         void set_min_log_level(int log_level) { this->settings_.min_log_level = log_level; }
         int get_min_log_level() const { return this->settings_.min_log_level; }
@@ -72,10 +74,10 @@ class SyslogComponent : public Component {
         bool is_setup() const { return this->socket_ != nullptr; }
 
         // Log source prefixing
-        void set_direct_log_prefix(const std::string &prefix) { this->direct_log_prefix = prefix; }
+        void set_direct_log_prefix(const std::string &prefix);
         const std::string &get_direct_log_prefix() const { return this->direct_log_prefix; }
         
-        void set_logger_log_prefix(const std::string &prefix) { this->logger_log_prefix = prefix; }
+        void set_logger_log_prefix(const std::string &prefix);
         const std::string &get_logger_log_prefix() const { return this->logger_log_prefix; }
 
         // Filter management
