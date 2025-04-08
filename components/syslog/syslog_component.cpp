@@ -1,3 +1,5 @@
+// components/syslog/syslog_component.cpp
+
 #include "syslog_component.h"
 
 #include "esphome/core/log.h"
@@ -260,6 +262,51 @@ std::string trim(const std::string &str) {
         return "";
     size_t last = str.find_last_not_of(" \t\r\n");
     return str.substr(first, (last - first + 1));
+}
+
+// Helper function to replace spaces with underscores
+std::string replace_spaces_with_underscores(const std::string &str) {
+    std::string result = str;
+    std::replace(result.begin(), result.end(), ' ', '_');
+    return result;
+}
+
+// Helper function to ensure prefix ends with ": "
+std::string normalize_prefix(const std::string &prefix) {
+    if (prefix.empty()) {
+        return prefix;
+    }
+    
+    std::string result = trim(prefix);
+    
+    // Replace any spaces with underscores
+    result = replace_spaces_with_underscores(result);
+    
+    // Check if it ends with colon and space
+    if (result.size() >= 2 && result.substr(result.size() - 2) == ": ") {
+        return result;
+    }
+    
+    // Check if it ends with just a colon
+    if (!result.empty() && result.back() == ':') {
+        return result + " ";
+    }
+    
+    // Otherwise add the colon and space
+    return result + ": ";
+}
+
+void SyslogComponent::set_client_id(const std::string &client_id) {
+    // Replace spaces with underscores for client_id
+    this->settings_.client_id = replace_spaces_with_underscores(client_id);
+}
+
+void SyslogComponent::set_direct_log_prefix(const std::string &prefix) {
+    this->direct_log_prefix = normalize_prefix(prefix);
+}
+
+void SyslogComponent::set_logger_log_prefix(const std::string &prefix) {
+    this->logger_log_prefix = normalize_prefix(prefix);
 }
 
 void SyslogComponent::set_filter_string(const std::string &filter_string) {
