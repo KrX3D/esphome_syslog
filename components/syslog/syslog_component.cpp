@@ -438,6 +438,11 @@ void SyslogComponent::log(uint8_t level, const std::string &tag, const std::stri
     if (source == LogSource::DIRECT && !this->enable_direct_logs && tag != "syslog") {
         return;
     }
+    
+    // Add this new check for logger messages
+    if (source == LogSource::LOGGER && !this->enable_logger && tag != "syslog") {
+        return;
+    }
 
     // Ensure level is valid
     level = std::min(level, static_cast<uint8_t>(7));
