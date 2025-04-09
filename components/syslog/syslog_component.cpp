@@ -215,7 +215,7 @@ void SyslogComponent::set_server_port(uint16_t port) {
             this->setup();
             
             // Log the change
-            this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", 
+            this->log(ESPHOME_LOG_LEVEL_INFO, TAG, 
                      "Syslog server port updated: " + std::to_string(old_port) + " -> " + 
                      std::to_string(port),
                      LogSource::INTERNAL);
@@ -225,7 +225,7 @@ void SyslogComponent::set_server_port(uint16_t port) {
 
 void SyslogComponent::set_enable_logger_messages(bool en) {
     if (this->enable_logger != en) { 
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", 
+        this->log(ESPHOME_LOG_LEVEL_INFO, TAG, 
                  "Logger messages: " + std::string(this->enable_logger ? "enabled" : "disabled") + 
                  " -> " + std::string(en ? "enabled" : "disabled"),
                  LogSource::INTERNAL);
@@ -235,7 +235,7 @@ void SyslogComponent::set_enable_logger_messages(bool en) {
 
 void SyslogComponent::set_strip_colors(bool strip_colors) {
     if (this->strip_colors != strip_colors) {    
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", 
+        this->log(ESPHOME_LOG_LEVEL_INFO, TAG, 
                  "Strip colors: " + std::string(this->strip_colors ? "enabled" : "disabled") + 
                  " -> " + std::string(strip_colors ? "enabled" : "disabled"),
                  LogSource::INTERNAL);
@@ -245,7 +245,7 @@ void SyslogComponent::set_strip_colors(bool strip_colors) {
 
 void SyslogComponent::set_enable_direct_logs(bool en) {
     if (this->enable_direct_logs != en) {        
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", 
+        this->log(ESPHOME_LOG_LEVEL_INFO, TAG, 
                  "Direct logging: " + std::string(this->enable_direct_logs ? "enabled" : "disabled") + 
                  " -> " + std::string(en ? "enabled" : "disabled"),
                  LogSource::INTERNAL);
@@ -255,7 +255,7 @@ void SyslogComponent::set_enable_direct_logs(bool en) {
 
 void SyslogComponent::set_globally_enabled(bool en) {
     if (this->globally_enabled != en) {
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", 
+        this->log(ESPHOME_LOG_LEVEL_INFO, TAG, 
                  "Syslog component: " + std::string(this->globally_enabled ? "enabled" : "disabled") + 
                  " -> " + std::string(en ? "enabled" : "disabled"),
                  LogSource::INTERNAL);
@@ -276,12 +276,12 @@ void SyslogComponent::set_globally_enabled(bool en) {
 
 void SyslogComponent::add_filter(const std::string &tag) {
     this->tag_filters.insert(tag);
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "Added filter for tag: '" + tag + "'", LogSource::INTERNAL);
+    this->log(ESPHOME_LOG_LEVEL_INFO, TAG, "Added filter for tag: '" + tag + "'", LogSource::INTERNAL);
 }
 
 void SyslogComponent::remove_filter(const std::string &tag) {
     this->tag_filters.erase(tag);
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "Removed filter for tag: '" + tag + "'", LogSource::INTERNAL);
+    this->log(ESPHOME_LOG_LEVEL_INFO, TAG, "Removed filter for tag: '" + tag + "'", LogSource::INTERNAL);
 }
 
 void SyslogComponent::clear_filters() {
@@ -293,48 +293,7 @@ void SyslogComponent::clear_filters() {
         this->filter_string_text_->publish_state("");
     }
     
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "All filters cleared", LogSource::INTERNAL);
-}
-
-// Helper function to trim whitespace
-std::string trim(const std::string &str) {
-    size_t first = str.find_first_not_of(" \t\r\n");
-    if (first == std::string::npos)
-        return "";
-    size_t last = str.find_last_not_of(" \t\r\n");
-    return str.substr(first, (last - first + 1));
-}
-
-// Helper function to replace spaces with underscores
-std::string replace_spaces_with_underscores(const std::string &str) {
-    std::string result = str;
-    std::replace(result.begin(), result.end(), ' ', '_');
-    return result;
-}
-
-// Helper function to ensure prefix ends with ": "
-std::string normalize_prefix(const std::string &prefix) {
-    if (prefix.empty()) {
-        return prefix;
-    }
-    
-    std::string result = trim(prefix);
-    
-    // Replace any spaces with underscores
-    result = replace_spaces_with_underscores(result);
-    
-    // Check if it ends with colon and space
-    if (result.size() >= 2 && result.substr(result.size() - 2) == ": ") {
-        return result;
-    }
-    
-    // Check if it ends with just a colon
-    if (!result.empty() && result.back() == ':') {
-        return result + " ";
-    }
-    
-    // Otherwise add the colon and space
-    return result + ": ";
+    this->log(ESPHOME_LOG_LEVEL_INFO, TAG, "All filters cleared", LogSource::INTERNAL);
 }
 
 void SyslogComponent::set_client_id(const std::string &client_id) {
@@ -363,9 +322,7 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
             size_t end = 0;
             
             while ((end = filter_string.find(',', start)) != std::string::npos) {
-                std::string item = filter_string.substr(start, end - start);
-                // Trim whitespace
-                item = trim(item);
+                std::string item = trim(filter_string.substr(start, end - start));
                 
                 if (!item.empty()) {
                     this->add_filter(item);
@@ -375,9 +332,7 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
             }
             
             // Add the last item
-            std::string item = filter_string.substr(start);
-            // Trim whitespace
-            item = trim(item);
+            std::string item = trim(filter_string.substr(start));
             
             if (!item.empty()) {
                 this->add_filter(item);
@@ -389,7 +344,7 @@ void SyslogComponent::set_filter_string(const std::string &filter_string) {
             this->filter_string_text_->publish_state(this->filter_string);
         }
         
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", 
+        this->log(ESPHOME_LOG_LEVEL_INFO, TAG, 
                  "Filter string updated: '" + filter_string + "'", 
                  LogSource::INTERNAL);
     }
