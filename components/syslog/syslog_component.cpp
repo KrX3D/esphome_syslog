@@ -26,6 +26,47 @@ static const char *TAG = "syslog";
 // https://github.com/esphome/esphome/blob/5c86f332b269fd3e4bffcbdf3359a021419effdd/esphome/core/log.h#L19-26
 static const uint8_t esphome_to_syslog_log_levels[] = {0, 3, 4, 6, 5, 7, 7, 7};
 
+// Helper function to trim whitespace
+static std::string trim(const std::string &str) {
+    size_t first = str.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return "";
+    size_t last = str.find_last_not_of(" \t\r\n");
+    return str.substr(first, (last - first + 1));
+}
+
+// Helper function to replace spaces with underscores
+static std::string replace_spaces_with_underscores(const std::string &str) {
+    std::string result = str;
+    std::replace(result.begin(), result.end(), ' ', '_');
+    return result;
+}
+
+// Helper function to ensure prefix ends with ": "
+static std::string normalize_prefix(const std::string &prefix) {
+    if (prefix.empty()) {
+        return prefix;
+    }
+    
+    std::string result = trim(prefix);
+    
+    // Replace any spaces with underscores
+    result = replace_spaces_with_underscores(result);
+    
+    // Check if it ends with colon and space
+    if (result.size() >= 2 && result.substr(result.size() - 2) == ": ") {
+        return result;
+    }
+    
+    // Check if it ends with just a colon
+    if (!result.empty() && result.back() == ':') {
+        return result + " ";
+    }
+    
+    // Otherwise add the colon and space
+    return result + ": ";
+}
+
 SyslogComponent::SyslogComponent() {
     this->settings_.client_id = App.get_name();
     this->filter_include_mode = false; // Default to exclude mode
@@ -41,7 +82,7 @@ SyslogComponent::SyslogComponent() {
 void SyslogComponent::setup() {
     // If component is globally disabled, don't set up the socket
     if (!this->globally_enabled) {
-        this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "Syslog component is disabled, skipping setup", LogSource::INTERNAL);
+        this->log(ESPHOME_LOG_LEVEL_INFO, TAG, "Syslog component is disabled, skipping setup", LogSource::INTERNAL);
         return;
     }
 
@@ -85,7 +126,7 @@ void SyslogComponent::setup() {
     
     // Check if we successfully set up the server address
     if (!this->server_socklen) {
-        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", 
+        this->log(ESPHOME_LOG_LEVEL_ERROR, TAG, 
                  "Failed to parse server IP address '" + this->settings_.address + "'", 
                  LogSource::INTERNAL);
         this->mark_failed();
@@ -95,23 +136,23 @@ void SyslogComponent::setup() {
     // Create UDP socket
     this->socket_ = socket::socket(this->server.ss_family, SOCK_DGRAM, IPPROTO_UDP);
     if (!this->socket_) {
-        this->log(ESPHOME_LOG_LEVEL_ERROR, "syslog", "Failed to create UDP socket", LogSource::INTERNAL);
+        this->log(ESPHOME_LOG_LEVEL_ERROR, TAG, "Failed to create UDP socket", LogSource::INTERNAL);
         this->mark_failed();
         return;
     }
  
     // Log successful startup
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", "------------------------ Syslog started ------------------------", LogSource::INTERNAL);
-    this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", 
+    this->log(ESPHOME_LOG_LEVEL_INFO, TAG, "------------------------ Syslog started ------------------------", LogSource::INTERNAL);
+    this->log(ESPHOME_LOG_LEVEL_INFO, TAG, 
               "Started with server: " + this->settings_.address + " -> " + std::to_string(this->settings_.port), 
               LogSource::INTERNAL);
     
     // Set up logger callback if logger is available
     #ifdef USE_LOGGER
-    if (logger::global_logger != nullptr) {
+    if (logger::global_logger != nullptr && this->enable_logger) {
         logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
-            // Skip if component is disabled or logger forwarding is disabled or level is filtered
-            if (!this->globally_enabled || !this->enable_logger || (level > this->settings_.min_log_level)) 
+            // Skip if component is disabled or level is filtered
+            if (!this->globally_enabled || (level > this->settings_.min_log_level)) 
                 return;
             
             // Check if tag is filtered
@@ -155,7 +196,7 @@ void SyslogComponent::set_server_ip(const std::string &address) {
             this->setup();
             
             // Log the change
-            this->log(ESPHOME_LOG_LEVEL_INFO, "syslog", 
+            this->log(ESPHOME_LOG_LEVEL_INFO, TAG, 
                      "Syslog server IP updated: " + old_address + " -> " + address, 
                      LogSource::INTERNAL);
         }
