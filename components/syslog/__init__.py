@@ -215,4 +215,3 @@ def syslog_set_filter_string_action_to_code(config, action_id, template_arg, arg
     template_ = yield cg.templatable(config[CONF_FILTER_STRING], args, cg.std_string)
     cg.add(var.set_filter_string(template_))
     yield var
-sdsd
