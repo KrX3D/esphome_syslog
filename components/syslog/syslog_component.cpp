@@ -440,7 +440,7 @@ void SyslogComponent::log(uint8_t level, const std::string &tag, const std::stri
     }
     
     // Add this new check for logger messages
-    if (source == LogSource::LOGGER && !this->enable_logger && tag != "syslog") {
+    if (source == LogSource::LOGGER && !this->enable_logger) {
         return;
     }
 
