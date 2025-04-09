@@ -55,6 +55,7 @@ class SyslogComponent : public Component {
         uint16_t get_server_port() const { return this->settings_.port; }
         
         void set_client_id(const std::string &client_id);
+        const std::string &get_client_id() const { return this->settings_.client_id; }
         
         void set_min_log_level(int log_level) { this->settings_.min_log_level = log_level; }
         int get_min_log_level() const { return this->settings_.min_log_level; }
@@ -92,7 +93,7 @@ class SyslogComponent : public Component {
         
         // Filter string methods (comma-separated list)
         void set_filter_string(const std::string &filter_string);
-        std::string get_filter_string() const { return this->filter_string; }
+        const std::string &get_filter_string() const { return this->filter_string; }
         
         // Register a text sensor for the filter string
         void register_filter_string_text(text::Text *text) {
@@ -108,7 +109,7 @@ class SyslogComponent : public Component {
         LogSource get_message_source(const std::string &tag) const;
         
         // Helper method to extract component name from the tag
-        std::string extract_component_name(const std::string &tag);
+        static std::string extract_component_name(const std::string &tag);
         
         // Method to check if a tag should be filtered
         bool should_send_log(const std::string &tag);
@@ -137,7 +138,7 @@ class SyslogComponent : public Component {
  */
 template<typename... Ts> class SyslogLogAction : public Action<Ts...> {
     public:
-        SyslogLogAction(SyslogComponent *parent) : parent_(parent) {}
+        explicit SyslogLogAction(SyslogComponent *parent) : parent_(parent) {}
         TEMPLATABLE_VALUE(uint8_t, level)
         TEMPLATABLE_VALUE(std::string, tag)
         TEMPLATABLE_VALUE(std::string, payload)
@@ -155,7 +156,7 @@ template<typename... Ts> class SyslogLogAction : public Action<Ts...> {
  */
 template<typename... Ts> class SyslogAddFilterAction : public Action<Ts...> {
 public:
-    SyslogAddFilterAction(SyslogComponent *parent) : parent_(parent) {}
+    explicit SyslogAddFilterAction(SyslogComponent *parent) : parent_(parent) {}
     TEMPLATABLE_VALUE(std::string, tag)
     void play(Ts... x) override {
         this->parent_->add_filter(this->tag_.value(x...));
@@ -169,7 +170,7 @@ protected:
  */
 template<typename... Ts> class SyslogRemoveFilterAction : public Action<Ts...> {
 public:
-    SyslogRemoveFilterAction(SyslogComponent *parent) : parent_(parent) {}
+    explicit SyslogRemoveFilterAction(SyslogComponent *parent) : parent_(parent) {}
     TEMPLATABLE_VALUE(std::string, tag)
     void play(Ts... x) override {
         this->parent_->remove_filter(this->tag_.value(x...));
@@ -183,7 +184,7 @@ protected:
  */
 template<typename... Ts> class SyslogClearFiltersAction : public Action<Ts...> {
 public:
-    SyslogClearFiltersAction(SyslogComponent *parent) : parent_(parent) {}
+    explicit SyslogClearFiltersAction(SyslogComponent *parent) : parent_(parent) {}
     void play(Ts... x) override {
         this->parent_->clear_filters();
     }
@@ -196,7 +197,7 @@ protected:
  */
 template<typename... Ts> class SyslogSetFilterStringAction : public Action<Ts...> {
 public:
-    SyslogSetFilterStringAction(SyslogComponent *parent) : parent_(parent) {}
+    explicit SyslogSetFilterStringAction(SyslogComponent *parent) : parent_(parent) {}
     TEMPLATABLE_VALUE(std::string, filter_string)
     void play(Ts... x) override {
         this->parent_->set_filter_string(this->filter_string_.value(x...));
