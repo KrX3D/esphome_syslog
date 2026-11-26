@@ -8,10 +8,18 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/log.h"
+#include "esphome/core/version.h"
 #include "esphome/components/socket/socket.h"
 #include "esphome/components/text/text.h"
 #include <unordered_map>
 #include <set>
+
+// ESPHome 2025.11.0 changed Action::play(Ts... x) to play(const Ts &...x)
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
+#define SYSLOG_PLAY_ARGS const Ts &...x
+#else
+#define SYSLOG_PLAY_ARGS Ts... x
+#endif
 
 namespace esphome {
 namespace syslog {
@@ -107,7 +115,10 @@ class SyslogComponent : public Component {
         // Main logging function
         void log(uint8_t level, const std::string &tag, const std::string &payload, LogSource source = LogSource::DIRECT);
         LogSource get_message_source(const std::string &tag) const;
-        
+
+        // Handles a message received from the ESPHome logger
+        void on_logger_message(uint8_t level, const char *tag, const char *message, size_t message_len);
+
         // Helper method to extract component name from the tag
         static std::string extract_component_name(const std::string &tag);
         
@@ -143,7 +154,7 @@ template<typename... Ts> class SyslogLogAction : public Action<Ts...> {
         TEMPLATABLE_VALUE(std::string, tag)
         TEMPLATABLE_VALUE(std::string, payload)
 
-        void play(Ts... x) override {
+        void play(SYSLOG_PLAY_ARGS) override {
             this->parent_->log(this->level_.value(x...), this->tag_.value(x...), this->payload_.value(x...), LogSource::DIRECT);
         }
 
@@ -158,7 +169,7 @@ template<typename... Ts> class SyslogAddFilterAction : public Action<Ts...> {
 public:
     explicit SyslogAddFilterAction(SyslogComponent *parent) : parent_(parent) {}
     TEMPLATABLE_VALUE(std::string, tag)
-    void play(Ts... x) override {
+    void play(SYSLOG_PLAY_ARGS) override {
         this->parent_->add_filter(this->tag_.value(x...));
     }
 protected:
@@ -172,7 +183,7 @@ template<typename... Ts> class SyslogRemoveFilterAction : public Action<Ts...> {
 public:
     explicit SyslogRemoveFilterAction(SyslogComponent *parent) : parent_(parent) {}
     TEMPLATABLE_VALUE(std::string, tag)
-    void play(Ts... x) override {
+    void play(SYSLOG_PLAY_ARGS) override {
         this->parent_->remove_filter(this->tag_.value(x...));
     }
 protected:
@@ -185,7 +196,7 @@ protected:
 template<typename... Ts> class SyslogClearFiltersAction : public Action<Ts...> {
 public:
     explicit SyslogClearFiltersAction(SyslogComponent *parent) : parent_(parent) {}
-    void play(Ts... x) override {
+    void play(SYSLOG_PLAY_ARGS) override {
         this->parent_->clear_filters();
     }
 protected:
@@ -199,7 +210,7 @@ template<typename... Ts> class SyslogSetFilterStringAction : public Action<Ts...
 public:
     explicit SyslogSetFilterStringAction(SyslogComponent *parent) : parent_(parent) {}
     TEMPLATABLE_VALUE(std::string, filter_string)
-    void play(Ts... x) override {
+    void play(SYSLOG_PLAY_ARGS) override {
         this->parent_->set_filter_string(this->filter_string_.value(x...));
     }
 protected:

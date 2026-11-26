@@ -398,6 +398,10 @@ This component has been tested with:
 - ESP8266
 - ESP32
 
+ESPHome versions: tested with 2026.11.1 (ESP-IDF). 2026.3 or newer and 2025.11 or older should work; 2025.12 to 2026.2 used a different logger listener API and is not supported.
+
+ESPHome has its own `syslog` component; this external component replaces it while it is listed under `external_components`.
+
 Note: The ESP32 may experience issues when sending many log messages in rapid succession, such as during boot when configuration is printed. See [issue #7 comment](https://github.com/TheStaticTurtle/esphome_syslog/issues/7#issuecomment-1236194816) for more details.
 
 ## Troubleshooting
