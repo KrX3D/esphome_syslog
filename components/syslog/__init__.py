@@ -13,6 +13,18 @@ from esphome.const import (
 )
 from esphome.components import logger, text
 
+# ESPHome 2026.x: log callbacks need a reserved listener slot
+_request_log_listener = getattr(logger, "request_log_listener", None)
+
+
+def _register_action(name, action_type, schema):
+    # All syslog actions finish inside play(), so they are synchronous.
+    # Older ESPHome versions do not know the synchronous= parameter.
+    try:
+        return automation.register_action(name, action_type, schema, synchronous=True)
+    except TypeError:
+        return automation.register_action(name, action_type, schema)
+
 # Configuration constants
 CONF_STRIP_COLORS = "strip_colors"
 CONF_ENABLE_LOGGER_MESSAGES = "enable_logger"
@@ -29,7 +41,8 @@ CONF_DIRECT_LOG_PREFIX = "direct_log_prefix"
 CONF_LOGGER_LOG_PREFIX = "logger_log_prefix"
 
 # Component dependencies
-DEPENDENCIES = ['logger', 'network', 'socket']
+DEPENDENCIES = ['logger', 'network']
+AUTO_LOAD = ['socket']
 
 # Namespace setup
 syslog_ns = cg.esphome_ns.namespace('syslog')
@@ -127,6 +140,9 @@ def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     yield cg.register_component(var, config)
     
+    if config[CONF_ENABLE_LOGGER_MESSAGES] and _request_log_listener is not None:
+        _request_log_listener()
+
     # Configure basic settings
     cg.add(var.set_enable_logger_messages(config[CONF_ENABLE_LOGGER_MESSAGES]))
     cg.add(var.set_enable_direct_logs(config[CONF_ENABLE_DIRECT_LOGS]))
@@ -167,7 +183,7 @@ def to_code(config):
             cg.add(var.add_filter(filter_tag))
 
 # Register automation actions
-@automation.register_action('syslog.log', SyslogLogAction, SYSLOG_LOG_ACTION_SCHEMA)
+@_register_action('syslog.log', SyslogLogAction, SYSLOG_LOG_ACTION_SCHEMA)
 def syslog_log_action_to_code(config, action_id, template_arg, args):
     """Registers the syslog.log action for automations"""
     paren = yield cg.get_variable(config[CONF_ID])
@@ -182,7 +198,7 @@ def syslog_log_action_to_code(config, action_id, template_arg, args):
     
     yield var
 
-@automation.register_action('syslog.add_filter', SyslogAddFilterAction, SYSLOG_ADD_FILTER_SCHEMA)
+@_register_action('syslog.add_filter', SyslogAddFilterAction, SYSLOG_ADD_FILTER_SCHEMA)
 def syslog_add_filter_action_to_code(config, action_id, template_arg, args):
     """Registers the syslog.add_filter action for automations"""
     paren = yield cg.get_variable(config[CONF_ID])
@@ -191,7 +207,7 @@ def syslog_add_filter_action_to_code(config, action_id, template_arg, args):
     cg.add(var.set_tag(template_))
     yield var
 
-@automation.register_action('syslog.remove_filter', SyslogRemoveFilterAction, SYSLOG_REMOVE_FILTER_SCHEMA)
+@_register_action('syslog.remove_filter', SyslogRemoveFilterAction, SYSLOG_REMOVE_FILTER_SCHEMA)
 def syslog_remove_filter_action_to_code(config, action_id, template_arg, args):
     """Registers the syslog.remove_filter action for automations"""
     paren = yield cg.get_variable(config[CONF_ID])
@@ -200,14 +216,14 @@ def syslog_remove_filter_action_to_code(config, action_id, template_arg, args):
     cg.add(var.set_tag(template_))
     yield var
 
-@automation.register_action('syslog.clear_filters', SyslogClearFiltersAction, SYSLOG_CLEAR_FILTERS_SCHEMA)
+@_register_action('syslog.clear_filters', SyslogClearFiltersAction, SYSLOG_CLEAR_FILTERS_SCHEMA)
 def syslog_clear_filters_action_to_code(config, action_id, template_arg, args):
     """Registers the syslog.clear_filters action for automations"""
     paren = yield cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
     yield var
 
-@automation.register_action('syslog.set_filter_string', SyslogSetFilterStringAction, SYSLOG_SET_FILTER_STRING_SCHEMA)
+@_register_action('syslog.set_filter_string', SyslogSetFilterStringAction, SYSLOG_SET_FILTER_STRING_SCHEMA)
 def syslog_set_filter_string_action_to_code(config, action_id, template_arg, args):
     """Registers the syslog.set_filter_string action for automations"""
     paren = yield cg.get_variable(config[CONF_ID])

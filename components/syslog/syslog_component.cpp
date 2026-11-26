@@ -6,6 +6,7 @@
 #include "esphome/core/application.h"
 #include "esphome/core/version.h"
 #include <algorithm>  // for std::transform
+#include <cstring>
 
 #ifdef USE_LOGGER
 #include "esphome/components/logger/logger.h"
@@ -25,6 +26,25 @@ static const char *TAG = "syslog";
 // https://github.com/arcao/Syslog/blob/master/src/Syslog.h#L37-44
 // https://github.com/esphome/esphome/blob/5c86f332b269fd3e4bffcbdf3359a021419effdd/esphome/core/log.h#L19-26
 static const uint8_t esphome_to_syslog_log_levels[] = {0, 3, 4, 6, 5, 7, 7, 7};
+
+#ifdef USE_LOGGER
+// ESPHome 2026.x replaced add_on_log_callback(std::function) with
+// add_log_callback(instance, fn-pointer, message_len). Pick whichever the logger has.
+template<typename L>
+static auto register_log_callback(L *logger, SyslogComponent *self, int)
+    -> decltype(logger->add_log_callback(nullptr, nullptr), void()) {
+    logger->add_log_callback(self, [](void *s, uint8_t level, const char *tag, const char *message, size_t len) {
+        static_cast<SyslogComponent *>(s)->on_logger_message(level, tag, message, len);
+    });
+}
+
+template<typename L>
+static void register_log_callback(L *logger, SyslogComponent *self, long) {
+    logger->add_on_log_callback([self](int level, const char *tag, const char *message) {
+        self->on_logger_message(level, tag, message, strlen(message));
+    });
+}
+#endif
 
 // Helper function to trim whitespace
 static std::string trim(const std::string &str) {
@@ -150,34 +170,27 @@ void SyslogComponent::setup() {
     // Set up logger callback if logger is available
     #ifdef USE_LOGGER
     if (logger::global_logger != nullptr && this->enable_logger) {
-        logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
-            // Skip if component is disabled or level is filtered
-            if (!this->globally_enabled || (level > this->settings_.min_log_level)) 
-                return;
-            
-            // Check if tag is filtered
-            std::string tag_str(tag);
-            if (!this->should_send_log(tag_str)) {
-                return;
-            }
-            
-            // Forward the log message, stripping color codes if configured
-            if (this->strip_colors) {
-                // Strip the ESPHome color codes:
-                // 033[0;xxx at beginning and 033[0m at end
-                std::string org_msg(message);
-                if (org_msg.size() > 11) { // Ensure message is long enough to have color codes
-                    this->log(level, tag, org_msg.substr(7, org_msg.size() - 7 - 4), LogSource::LOGGER);
-                } else {
-                    // Message too short to have color codes, send as is
-                    this->log(level, tag, message, LogSource::LOGGER);
-                }
-            } else {
-                this->log(level, tag, message, LogSource::LOGGER);
-            }
-        });
+        register_log_callback(logger::global_logger, this, 0);
     }
     #endif
+}
+
+void SyslogComponent::on_logger_message(uint8_t level, const char *tag, const char *message, size_t message_len) {
+    // Skip if component is disabled or level is filtered
+    if (!this->globally_enabled || (level > this->settings_.min_log_level))
+        return;
+
+    // Check if tag is filtered
+    if (!this->should_send_log(std::string(tag))) {
+        return;
+    }
+
+    std::string msg(message, message_len);
+    // Strip the ESPHome color codes: "\033[0;xxm" (7 chars) at the start and "\033[0m" (4 chars) at the end
+    if (this->strip_colors && msg.size() > 11 && msg[0] == '\033') {
+        msg = msg.substr(7, msg.size() - 7 - 4);
+    }
+    this->log(level, tag, msg, LogSource::LOGGER);
 }
 
 void SyslogComponent::loop() {
@@ -472,9 +485,8 @@ void SyslogComponent::log(uint8_t level, const std::string &tag, const std::stri
     
     // Format according to syslog protocol
     int pri = esphome_to_syslog_log_levels[level];
-    std::string buf = str_sprintf("<%d>1 - %s %s - - - \xEF\xBB\xBF%s",
-                                 pri, this->settings_.client_id.c_str(),
-                                 modified_tag.c_str(), payload.c_str());
+    std::string buf = "<" + std::to_string(pri) + ">1 - " + this->settings_.client_id + " " +
+                      modified_tag + " - - - \xEF\xBB\xBF" + payload;
     
     // Send the message
     if (this->socket_->sendto(buf.c_str(), buf.length(), 0, 
